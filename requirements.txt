@@ -1,0 +1,8 @@
+# Core (required).  Python >= 3.9.
+torch>=1.13          # for GPU acceleration install the CUDA build that matches your driver: https://pytorch.org/get-started/locally/
+numpy>=1.21
+scipy>=1.7
+
+# Optional engine comparisons
+# torcwa            # pip install torcwa  -- enables "Compare with TORCWA" and the TORCWA optimizer arm
+# lumapi            # ships with Ansys Lumerical; set LUMERICAL_API_PATH to its api/python folder if it is not auto-detected

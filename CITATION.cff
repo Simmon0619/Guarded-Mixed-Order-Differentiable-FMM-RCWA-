@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "Please cite this software and record the exact commit used. Manuscript and archival DOI metadata are pending."
+title: "Guarded Mixed-Order Differentiable FMM/RCWA"
+type: software
+authors:
+  - name: "Simmon0619"
+version: 0.1.0
+license: MIT
+repository-code: "https://github.com/Simmon0619/Guarded-Mixed-Order-Differentiable-FMM-RCWA-"

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "title": "Installation and reproduction-framework smoke suite",
+  "status": "smoke-only; not the manuscript experiment set",
+  "experiments": [
+    {
+      "id": "slab",
+      "config": "../examples/slab.json",
+      "purpose": "Check analytic transmission and export a truncation-order curve.",
+      "paper_items": [],
+      "reference": "reference_results/slab-analytic.json"
+    },
+    {
+      "id": "optimize-small",
+      "config": "../examples/optimize-small.json",
+      "purpose": "Exercise guarded mixed-order descent, binary selection and higher-order evaluation.",
+      "paper_items": []
+    }
+  ]
+}

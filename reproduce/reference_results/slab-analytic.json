@@ -1,0 +1,8 @@
+{
+  "description": "Independent lossless Airy formula at normal incidence: n1=n3=1, n2=2, thickness=200 nm, wavelength=600 nm.",
+  "derivation": "T = 1 / (1 + ((n2^2 - 1)^2 / (4*n2^2))*sin(2*pi*n2*d/lambda)^2) = 64/91.",
+  "checks": [
+    {"path": ["eta_target"], "value": 0.7032967032967034, "atol": 0.000001, "rtol": 0.0}
+  ],
+  "note": "The JSON result is rounded to six decimals by the existing workbench; numerical unit tests use unrounded tensors and tighter tolerances. This is not an empirical benchmark or a manuscript result."
+}

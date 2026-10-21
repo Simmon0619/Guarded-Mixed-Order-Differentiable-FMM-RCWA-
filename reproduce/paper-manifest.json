@@ -1,0 +1,958 @@
+{
+  "schema_version": 1,
+  "title": "Recovered CP manuscript experiment mapping",
+  "status": "archived-data analysis runnable with reproduce/paper.py; full numerical reproduction incomplete",
+  "experiments": [],
+  "archive_guide": "../paper/README.md",
+  "historical_command_base": "<prepared workspace>/stage_e1_metasurface_platform/experiments",
+  "physics": {
+    "wavelength_nm": 660,
+    "lattice_nm": [
+      3000,
+      500
+    ],
+    "thickness_nm": 300,
+    "grid_yx": [
+      100,
+      600
+    ],
+    "pixel_nm": 5,
+    "n_incident": 1.46,
+    "n_output": 1,
+    "n_feature": 3.2,
+    "n_background": 1,
+    "incident_jones_real": [
+      1,
+      0
+    ],
+    "theta_deg": 0,
+    "phi_deg": 0,
+    "symmetry": "y",
+    "filter_nm": 60
+  },
+  "recorded_runtime": {
+    "os": "Windows 10",
+    "gpu": "NVIDIA GeForce RTX 3060, 12 GB",
+    "torch": "1.13.0+cu117",
+    "solve_dtype": "complex64",
+    "latent_dtype": "float64",
+    "TFMM_EIG_DEVICE": "cpu",
+    "FMM_THREADS": 3,
+    "full_lockfile_available": false
+  },
+  "historical_experiments": [
+    {
+      "id": "f33-paired-m1",
+      "paper_items": [
+        "Sec. 3.3",
+        "Fig. 4",
+        "SI S3.8"
+      ],
+      "target": [
+        1,
+        0
+      ],
+      "seed_rule": "150000 + 1000*m + i",
+      "seeds": [
+        151000,
+        151001,
+        151002,
+        151003,
+        151004,
+        151005,
+        151006,
+        151007,
+        151008,
+        151009,
+        151010,
+        151011,
+        151012,
+        151013,
+        151014,
+        151015,
+        151016,
+        151017,
+        151018,
+        151019,
+        151020,
+        151021,
+        151022,
+        151023
+      ],
+      "guarded_metadata": {
+        "arm": "B",
+        "config": {
+          "guards": true,
+          "mix_from_beta": 16.0,
+          "k": 4,
+          "adaptive": false,
+          "rise": false,
+          "ramp": "uniform",
+          "lr_index": "step"
+        },
+        "m": 1,
+        "orders": {
+          "descent": [
+            16,
+            2
+          ],
+          "gate": [
+            28,
+            4
+          ],
+          "rung1": [
+            40,
+            6
+          ],
+          "top": [
+            48,
+            7
+          ]
+        },
+        "steps": 219,
+        "beta_end": 2000.0,
+        "high_budget": null,
+        "mix_start_step": 66,
+        "checkpoints": [
+          0,
+          12,
+          24,
+          36,
+          48,
+          55,
+          60,
+          72,
+          84,
+          96,
+          108,
+          110,
+          120,
+          131,
+          132,
+          142,
+          144,
+          153,
+          156,
+          164,
+          168,
+          175,
+          180,
+          186,
+          192,
+          197,
+          204,
+          208,
+          216,
+          219
+        ],
+        "tau": {
+          "28-4": 8.3e-06,
+          "44-6": 3.9e-06,
+          "24-3": 6.8e-06,
+          "40-6": 4.4e-06,
+          "32-5": 6e-06,
+          "36-5": 5e-06
+        },
+        "started": "2026-09-26 22:04:06",
+        "guards": {
+          "jitters": [
+            0.01,
+            -0.01,
+            0.03,
+            -0.03
+          ],
+          "jitters_dir": [
+            0.01,
+            -0.01
+          ],
+          "norm": [
+            3.0,
+            8,
+            4,
+            8.0
+          ],
+          "dir_cos_min": -2.0,
+          "stab_cos": 0.9,
+          "stab_ratio": [
+            0.5,
+            2.0
+          ],
+          "suspect_cos": -2.0,
+          "c128_cap": 6,
+          "guard_cfg": {
+            "_note": "calibrated 2026-09-16 02:20 from Aprime (log-only replay of the S6-3b MIX4 m=4 pool, bitwise identical) and the S8 gap scans: the eigen gap does not predict wrong gradients (tau = 1% quantile per order, logged flag only); consecutive-step direction cosines are broad in a moving descent (median 0.88, 25% quantile 0.37, 5% -0.47) so the direction guard is off; the late-ramp gate-vs-descent cosine is genuinely negative (-0.6..-0.9 from step ~186) so the probe-based suspect test is off; the norm guard (3x the last-8 same-order median, with the +1%/+3% stability test) is the active guard -- it flags the x514 high-order spike at step 102 that precedes the s00 collapse (0.888 -> 0.544 -> 0.140), the x21 descent spike at step 61 of s01 (0.743 -> 0.547) and the x22 spike at step 163 of s02 (0.846 -> 0.799).",
+            "tau": {
+              "28-4": 8.3e-06,
+              "44-6": 3.9e-06,
+              "24-3": 6.8e-06,
+              "40-6": 4.4e-06,
+              "32-5": 6e-06,
+              "36-5": 5e-06
+            },
+            "dir_cos_min": -2.0,
+            "norm_factor": 3.0,
+            "suspect_cos": -2.0
+          }
+        },
+        "ramp": "uniform",
+        "beta_at_steps": {
+          "0": 2.0,
+          "54": 10.984,
+          "66": 16.038,
+          "95": 40.031,
+          "131": 124.609,
+          "150": 226.895,
+          "200": 1098.389,
+          "219": 2000.0
+        },
+        "seeds": [
+          151000,
+          151001,
+          151002,
+          151003,
+          151004,
+          151005,
+          151006,
+          151007,
+          151008,
+          151009,
+          151010,
+          151011,
+          151012,
+          151013,
+          151014,
+          151015,
+          151016,
+          151017,
+          151018,
+          151019,
+          151020,
+          151021,
+          151022,
+          151023
+        ],
+        "eig_device": "cpu",
+        "gpu": "NVIDIA GeForce RTX 3060",
+        "note": "Aprime replays the S6-3b MIX4 recipe with guards instrumented but inactive; contemporaneous control. Deviation: on a raised / non-finite gradient Aprime uses the +-1 %, +-3 % ladder instead of the pool's 1e-6..1e-5 ladder. The chain re-descends at the rule's descent order (not a risen one) with k=4 fixed."
+      },
+      "conventional_steps": 800,
+      "conventional_beta": [
+        2,
+        2000
+      ],
+      "conventional_argv": [
+        "S7_headtohead/scripts/s7_headtohead.py",
+        "--phase",
+        "tickets_T",
+        "--problem",
+        "P2",
+        "--targets",
+        "1",
+        "--beta-end",
+        "2000",
+        "--n",
+        "24"
+      ],
+      "guarded_argv": [
+        "F33_section33_results/scripts/f33_tickets.py",
+        "--m",
+        "1",
+        "--n",
+        "24"
+      ],
+      "reference_reads_argv": [
+        [
+          "F33_section33_results/scripts/f33_reads.py",
+          "--who",
+          "T",
+          "--m",
+          "1"
+        ],
+        [
+          "F33_section33_results/scripts/f33_reads.py",
+          "--who",
+          "B",
+          "--m",
+          "1"
+        ]
+      ],
+      "recorded_results": "F33_section33_results/data/s10_B_m1.json",
+      "status": "recorded statistics available; original design arrays missing; full GPU rerun not performed"
+    },
+    {
+      "id": "f33-paired-m2",
+      "paper_items": [
+        "Sec. 3.3",
+        "Fig. 4",
+        "SI S3.8"
+      ],
+      "target": [
+        2,
+        0
+      ],
+      "seed_rule": "150000 + 1000*m + i",
+      "seeds": [
+        152000,
+        152001,
+        152002,
+        152003,
+        152004,
+        152005,
+        152006,
+        152007,
+        152008,
+        152009,
+        152010,
+        152011,
+        152012,
+        152013,
+        152014,
+        152015,
+        152016,
+        152017,
+        152018,
+        152019,
+        152020,
+        152021,
+        152022,
+        152023
+      ],
+      "guarded_metadata": {
+        "arm": "B",
+        "config": {
+          "guards": true,
+          "mix_from_beta": 16.0,
+          "k": 4,
+          "adaptive": false,
+          "rise": false,
+          "ramp": "uniform",
+          "lr_index": "step"
+        },
+        "m": 2,
+        "orders": {
+          "descent": [
+            16,
+            2
+          ],
+          "gate": [
+            28,
+            4
+          ],
+          "rung1": [
+            40,
+            6
+          ],
+          "top": [
+            48,
+            7
+          ]
+        },
+        "steps": 219,
+        "beta_end": 2000.0,
+        "high_budget": null,
+        "mix_start_step": 66,
+        "checkpoints": [
+          0,
+          12,
+          24,
+          36,
+          48,
+          55,
+          60,
+          72,
+          84,
+          96,
+          108,
+          110,
+          120,
+          131,
+          132,
+          142,
+          144,
+          153,
+          156,
+          164,
+          168,
+          175,
+          180,
+          186,
+          192,
+          197,
+          204,
+          208,
+          216,
+          219
+        ],
+        "tau": {
+          "28-4": 8.3e-06,
+          "44-6": 3.9e-06,
+          "24-3": 6.8e-06,
+          "40-6": 4.4e-06,
+          "32-5": 6e-06,
+          "36-5": 5e-06
+        },
+        "started": "2026-09-26 22:43:02",
+        "guards": {
+          "jitters": [
+            0.01,
+            -0.01,
+            0.03,
+            -0.03
+          ],
+          "jitters_dir": [
+            0.01,
+            -0.01
+          ],
+          "norm": [
+            3.0,
+            8,
+            4,
+            8.0
+          ],
+          "dir_cos_min": -2.0,
+          "stab_cos": 0.9,
+          "stab_ratio": [
+            0.5,
+            2.0
+          ],
+          "suspect_cos": -2.0,
+          "c128_cap": 6,
+          "guard_cfg": {
+            "_note": "calibrated 2026-09-16 02:20 from Aprime (log-only replay of the S6-3b MIX4 m=4 pool, bitwise identical) and the S8 gap scans: the eigen gap does not predict wrong gradients (tau = 1% quantile per order, logged flag only); consecutive-step direction cosines are broad in a moving descent (median 0.88, 25% quantile 0.37, 5% -0.47) so the direction guard is off; the late-ramp gate-vs-descent cosine is genuinely negative (-0.6..-0.9 from step ~186) so the probe-based suspect test is off; the norm guard (3x the last-8 same-order median, with the +1%/+3% stability test) is the active guard -- it flags the x514 high-order spike at step 102 that precedes the s00 collapse (0.888 -> 0.544 -> 0.140), the x21 descent spike at step 61 of s01 (0.743 -> 0.547) and the x22 spike at step 163 of s02 (0.846 -> 0.799).",
+            "tau": {
+              "28-4": 8.3e-06,
+              "44-6": 3.9e-06,
+              "24-3": 6.8e-06,
+              "40-6": 4.4e-06,
+              "32-5": 6e-06,
+              "36-5": 5e-06
+            },
+            "dir_cos_min": -2.0,
+            "norm_factor": 3.0,
+            "suspect_cos": -2.0
+          }
+        },
+        "ramp": "uniform",
+        "beta_at_steps": {
+          "0": 2.0,
+          "54": 10.984,
+          "66": 16.038,
+          "95": 40.031,
+          "131": 124.609,
+          "150": 226.895,
+          "200": 1098.389,
+          "219": 2000.0
+        },
+        "seeds": [
+          152000,
+          152001,
+          152002,
+          152003,
+          152004,
+          152005,
+          152006,
+          152007,
+          152008,
+          152009,
+          152010,
+          152011,
+          152012,
+          152013,
+          152014,
+          152015,
+          152016,
+          152017,
+          152018,
+          152019,
+          152020,
+          152021,
+          152022,
+          152023
+        ],
+        "eig_device": "cpu",
+        "gpu": "NVIDIA GeForce RTX 3060",
+        "note": "Aprime replays the S6-3b MIX4 recipe with guards instrumented but inactive; contemporaneous control. Deviation: on a raised / non-finite gradient Aprime uses the +-1 %, +-3 % ladder instead of the pool's 1e-6..1e-5 ladder. The chain re-descends at the rule's descent order (not a risen one) with k=4 fixed."
+      },
+      "conventional_steps": 800,
+      "conventional_beta": [
+        2,
+        2000
+      ],
+      "conventional_argv": [
+        "S7_headtohead/scripts/s7_headtohead.py",
+        "--phase",
+        "tickets_T",
+        "--problem",
+        "P2",
+        "--targets",
+        "2",
+        "--beta-end",
+        "2000",
+        "--n",
+        "24"
+      ],
+      "guarded_argv": [
+        "F33_section33_results/scripts/f33_tickets.py",
+        "--m",
+        "2",
+        "--n",
+        "24"
+      ],
+      "reference_reads_argv": [
+        [
+          "F33_section33_results/scripts/f33_reads.py",
+          "--who",
+          "T",
+          "--m",
+          "2"
+        ],
+        [
+          "F33_section33_results/scripts/f33_reads.py",
+          "--who",
+          "B",
+          "--m",
+          "2"
+        ]
+      ],
+      "recorded_results": "F33_section33_results/data/s10_B_m2.json",
+      "status": "recorded statistics available; original design arrays missing; full GPU rerun not performed"
+    },
+    {
+      "id": "f33-paired-m3",
+      "paper_items": [
+        "Sec. 3.3",
+        "Fig. 4",
+        "SI S3.8"
+      ],
+      "target": [
+        3,
+        0
+      ],
+      "seed_rule": "150000 + 1000*m + i",
+      "seeds": [
+        153000,
+        153001,
+        153002,
+        153003,
+        153004,
+        153005,
+        153006,
+        153007,
+        153008,
+        153009,
+        153010,
+        153011
+      ],
+      "guarded_metadata": {
+        "arm": "B",
+        "config": {
+          "guards": true,
+          "mix_from_beta": 16.0,
+          "k": 4,
+          "adaptive": false,
+          "rise": false,
+          "ramp": "uniform",
+          "lr_index": "step"
+        },
+        "m": 3,
+        "orders": {
+          "descent": [
+            24,
+            3
+          ],
+          "gate": [
+            40,
+            6
+          ],
+          "rung1": [
+            48,
+            7
+          ],
+          "top": [
+            60,
+            9
+          ]
+        },
+        "steps": 219,
+        "beta_end": 2000.0,
+        "high_budget": null,
+        "mix_start_step": 66,
+        "checkpoints": [
+          0,
+          12,
+          24,
+          36,
+          48,
+          55,
+          60,
+          72,
+          84,
+          96,
+          108,
+          110,
+          120,
+          131,
+          132,
+          142,
+          144,
+          153,
+          156,
+          164,
+          168,
+          175,
+          180,
+          186,
+          192,
+          197,
+          204,
+          208,
+          216,
+          219
+        ],
+        "tau": {
+          "28-4": 8.3e-06,
+          "44-6": 3.9e-06,
+          "24-3": 6.8e-06,
+          "40-6": 4.4e-06,
+          "32-5": 6e-06,
+          "36-5": 5e-06
+        },
+        "started": "2026-09-26 23:21:56",
+        "guards": {
+          "jitters": [
+            0.01,
+            -0.01,
+            0.03,
+            -0.03
+          ],
+          "jitters_dir": [
+            0.01,
+            -0.01
+          ],
+          "norm": [
+            3.0,
+            8,
+            4,
+            8.0
+          ],
+          "dir_cos_min": -2.0,
+          "stab_cos": 0.9,
+          "stab_ratio": [
+            0.5,
+            2.0
+          ],
+          "suspect_cos": -2.0,
+          "c128_cap": 6,
+          "guard_cfg": {
+            "_note": "calibrated 2026-09-16 02:20 from Aprime (log-only replay of the S6-3b MIX4 m=4 pool, bitwise identical) and the S8 gap scans: the eigen gap does not predict wrong gradients (tau = 1% quantile per order, logged flag only); consecutive-step direction cosines are broad in a moving descent (median 0.88, 25% quantile 0.37, 5% -0.47) so the direction guard is off; the late-ramp gate-vs-descent cosine is genuinely negative (-0.6..-0.9 from step ~186) so the probe-based suspect test is off; the norm guard (3x the last-8 same-order median, with the +1%/+3% stability test) is the active guard -- it flags the x514 high-order spike at step 102 that precedes the s00 collapse (0.888 -> 0.544 -> 0.140), the x21 descent spike at step 61 of s01 (0.743 -> 0.547) and the x22 spike at step 163 of s02 (0.846 -> 0.799).",
+            "tau": {
+              "28-4": 8.3e-06,
+              "44-6": 3.9e-06,
+              "24-3": 6.8e-06,
+              "40-6": 4.4e-06,
+              "32-5": 6e-06,
+              "36-5": 5e-06
+            },
+            "dir_cos_min": -2.0,
+            "norm_factor": 3.0,
+            "suspect_cos": -2.0
+          }
+        },
+        "ramp": "uniform",
+        "beta_at_steps": {
+          "0": 2.0,
+          "54": 10.984,
+          "66": 16.038,
+          "95": 40.031,
+          "131": 124.609,
+          "150": 226.895,
+          "200": 1098.389,
+          "219": 2000.0
+        },
+        "seeds": [
+          153000,
+          153001,
+          153002,
+          153003,
+          153004,
+          153005,
+          153006,
+          153007,
+          153008,
+          153009,
+          153010,
+          153011
+        ],
+        "eig_device": "cpu",
+        "gpu": "NVIDIA GeForce RTX 3060",
+        "note": "Aprime replays the S6-3b MIX4 recipe with guards instrumented but inactive; contemporaneous control. Deviation: on a raised / non-finite gradient Aprime uses the +-1 %, +-3 % ladder instead of the pool's 1e-6..1e-5 ladder. The chain re-descends at the rule's descent order (not a risen one) with k=4 fixed."
+      },
+      "conventional_steps": 800,
+      "conventional_beta": [
+        2,
+        2000
+      ],
+      "conventional_argv": [
+        "S7_headtohead/scripts/s7_headtohead.py",
+        "--phase",
+        "tickets_T",
+        "--problem",
+        "P2",
+        "--targets",
+        "3",
+        "--beta-end",
+        "2000",
+        "--n",
+        "12"
+      ],
+      "guarded_argv": [
+        "F33_section33_results/scripts/f33_tickets.py",
+        "--m",
+        "3",
+        "--n",
+        "12"
+      ],
+      "reference_reads_argv": [
+        [
+          "F33_section33_results/scripts/f33_reads.py",
+          "--who",
+          "T",
+          "--m",
+          "3"
+        ],
+        [
+          "F33_section33_results/scripts/f33_reads.py",
+          "--who",
+          "B",
+          "--m",
+          "3"
+        ]
+      ],
+      "recorded_results": "F33_section33_results/data/s10_B_m3.json",
+      "status": "recorded statistics available; original design arrays missing; full GPU rerun not performed"
+    },
+    {
+      "id": "f33-paired-m4",
+      "paper_items": [
+        "Sec. 3.3",
+        "Fig. 4",
+        "SI S3.8"
+      ],
+      "target": [
+        4,
+        0
+      ],
+      "seed_rule": "150000 + 1000*m + i",
+      "seeds": [
+        154000,
+        154001,
+        154002,
+        154003,
+        154004,
+        154005,
+        154006,
+        154007,
+        154008,
+        154009,
+        154010,
+        154011
+      ],
+      "guarded_metadata": {
+        "arm": "B",
+        "config": {
+          "guards": true,
+          "mix_from_beta": 16.0,
+          "k": 4,
+          "adaptive": false,
+          "rise": false,
+          "ramp": "uniform",
+          "lr_index": "step"
+        },
+        "m": 4,
+        "orders": {
+          "descent": [
+            28,
+            4
+          ],
+          "gate": [
+            44,
+            6
+          ],
+          "rung1": [
+            52,
+            7
+          ],
+          "top": [
+            64,
+            9
+          ]
+        },
+        "steps": 219,
+        "beta_end": 2000.0,
+        "high_budget": null,
+        "mix_start_step": 66,
+        "checkpoints": [
+          0,
+          12,
+          24,
+          36,
+          48,
+          55,
+          60,
+          72,
+          84,
+          96,
+          108,
+          110,
+          120,
+          131,
+          132,
+          142,
+          144,
+          153,
+          156,
+          164,
+          168,
+          175,
+          180,
+          186,
+          192,
+          197,
+          204,
+          208,
+          216,
+          219
+        ],
+        "tau": {
+          "28-4": 8.3e-06,
+          "44-6": 3.9e-06,
+          "24-3": 6.8e-06,
+          "40-6": 4.4e-06,
+          "32-5": 6e-06,
+          "36-5": 5e-06
+        },
+        "started": "2026-09-26 23:21:56",
+        "guards": {
+          "jitters": [
+            0.01,
+            -0.01,
+            0.03,
+            -0.03
+          ],
+          "jitters_dir": [
+            0.01,
+            -0.01
+          ],
+          "norm": [
+            3.0,
+            8,
+            4,
+            8.0
+          ],
+          "dir_cos_min": -2.0,
+          "stab_cos": 0.9,
+          "stab_ratio": [
+            0.5,
+            2.0
+          ],
+          "suspect_cos": -2.0,
+          "c128_cap": 6,
+          "guard_cfg": {
+            "_note": "calibrated 2026-09-16 02:20 from Aprime (log-only replay of the S6-3b MIX4 m=4 pool, bitwise identical) and the S8 gap scans: the eigen gap does not predict wrong gradients (tau = 1% quantile per order, logged flag only); consecutive-step direction cosines are broad in a moving descent (median 0.88, 25% quantile 0.37, 5% -0.47) so the direction guard is off; the late-ramp gate-vs-descent cosine is genuinely negative (-0.6..-0.9 from step ~186) so the probe-based suspect test is off; the norm guard (3x the last-8 same-order median, with the +1%/+3% stability test) is the active guard -- it flags the x514 high-order spike at step 102 that precedes the s00 collapse (0.888 -> 0.544 -> 0.140), the x21 descent spike at step 61 of s01 (0.743 -> 0.547) and the x22 spike at step 163 of s02 (0.846 -> 0.799).",
+            "tau": {
+              "28-4": 8.3e-06,
+              "44-6": 3.9e-06,
+              "24-3": 6.8e-06,
+              "40-6": 4.4e-06,
+              "32-5": 6e-06,
+              "36-5": 5e-06
+            },
+            "dir_cos_min": -2.0,
+            "norm_factor": 3.0,
+            "suspect_cos": -2.0
+          }
+        },
+        "ramp": "uniform",
+        "beta_at_steps": {
+          "0": 2.0,
+          "54": 10.984,
+          "66": 16.038,
+          "95": 40.031,
+          "131": 124.609,
+          "150": 226.895,
+          "200": 1098.389,
+          "219": 2000.0
+        },
+        "seeds": [
+          154000,
+          154001,
+          154002,
+          154003,
+          154004,
+          154005,
+          154006,
+          154007,
+          154008,
+          154009,
+          154010,
+          154011
+        ],
+        "eig_device": "cpu",
+        "gpu": "NVIDIA GeForce RTX 3060",
+        "note": "Aprime replays the S6-3b MIX4 recipe with guards instrumented but inactive; contemporaneous control. Deviation: on a raised / non-finite gradient Aprime uses the +-1 %, +-3 % ladder instead of the pool's 1e-6..1e-5 ladder. The chain re-descends at the rule's descent order (not a risen one) with k=4 fixed."
+      },
+      "conventional_steps": 800,
+      "conventional_beta": [
+        2,
+        2000
+      ],
+      "conventional_argv": [
+        "S7_headtohead/scripts/s7_headtohead.py",
+        "--phase",
+        "tickets_T",
+        "--problem",
+        "P2",
+        "--targets",
+        "4",
+        "--beta-end",
+        "2000",
+        "--n",
+        "12"
+      ],
+      "guarded_argv": [
+        "F33_section33_results/scripts/f33_tickets.py",
+        "--m",
+        "4",
+        "--n",
+        "12"
+      ],
+      "reference_reads_argv": [
+        [
+          "F33_section33_results/scripts/f33_reads.py",
+          "--who",
+          "T",
+          "--m",
+          "4"
+        ],
+        [
+          "F33_section33_results/scripts/f33_reads.py",
+          "--who",
+          "B",
+          "--m",
+          "4"
+        ]
+      ],
+      "recorded_results": "F33_section33_results/data/s10_B_m4.json",
+      "status": "recorded statistics available; original design arrays missing; full GPU rerun not performed"
+    }
+  ],
+  "figure_mapping": {
+    "Fig. 1": "F1_fig1_schematic; final assembled figure absent",
+    "Fig. 2": "F31_section31_figures + S7_headtohead + S8_order_beta_map",
+    "Fig. 3": "F33_section33_results/scripts/f33_fig3_parts.py + S10_e3_v2",
+    "Fig. 4": "F33_section33_results + S7_headtohead",
+    "Fig. 5": "F5_workbench_screenshot",
+    "SI Figs. S1-S5": "FS_si_figures/scripts/fs_composites.py; S2 requires missing S8 latent array"
+  },
+  "mapping_basis": "supplied manuscript_cpc sections and SI source; later integrated manuscript is outside the supplied project"
+}

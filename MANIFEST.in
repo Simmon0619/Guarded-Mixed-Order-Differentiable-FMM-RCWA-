@@ -1,0 +1,13 @@
+include README.md README.zh-CN.md requirements.txt run.py selfcheck.py
+include LICENSE THIRD_PARTY_NOTICES.md
+include CITATION.cff
+recursive-include licenses *.txt
+recursive-include paper *.json *.md *.zip
+prune paper/archive
+recursive-include docs *.md
+recursive-include examples *.json
+recursive-include reproduce *.json *.md *.py
+recursive-include tests *.py
+recursive-include requirements *.txt
+recursive-exclude workbench/data *
+global-exclude __pycache__ *.py[cod]

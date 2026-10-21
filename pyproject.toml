@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "guarded-fmm-workbench"
+version = "0.1.0"
+description = "Differentiable RCWA with guarded mixed-order inverse design and a local web workbench"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "licenses/*.txt"]
+dependencies = ["torch>=1.13", "numpy>=1.21", "scipy>=1.7"]
+keywords = ["RCWA", "Fourier modal method", "inverse design", "computational physics"]
+
+[project.urls]
+Repository = "https://github.com/Simmon0619/Guarded-Mixed-Order-Differentiable-FMM-RCWA-"
+
+[project.optional-dependencies]
+test = ["pytest>=7,<9"]
+dev = ["pytest>=7,<9", "build>=1", "twine>=5"]
+compare = ["torcwa"]
+plots = ["matplotlib>=3.6"]
+
+[project.scripts]
+fmm-workbench = "workbench.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["trustworthy_fmm*", "workbench*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+workbench = ["index.html", "vendor/*.js", "vendor/*LICENSE.txt"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --import-mode=importlib"
+markers = ["gpu: requires a CUDA-enabled PyTorch installation"]

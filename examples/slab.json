@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "name": "uniform-slab",
+  "description": "CPU smoke example with an independent Airy transmission reference; not a paper experiment.",
+  "type": "solve",
+  "params": {
+    "engine": "cpu_c128",
+    "nx": 32,
+    "ny": 24,
+    "wavelength_nm": 600.0,
+    "lx_nm": 800.0,
+    "ly_nm": 480.0,
+    "thickness_nm": 200.0,
+    "n_incident": 1.0,
+    "n_output": 1.0,
+    "n_feature": 2.0,
+    "n_background": 1.0,
+    "target": [0, 0],
+    "level_descent": [2, 1],
+    "levels_certify": [[3, 2]],
+    "pattern_source": {"kind": "uniform", "fill": 1.0},
+    "compare_torcwa": false,
+    "compare_lumerical": false
+  }
+}

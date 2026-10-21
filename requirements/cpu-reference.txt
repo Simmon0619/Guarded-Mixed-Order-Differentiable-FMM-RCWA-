@@ -1,0 +1,10 @@
+# CPU validation profile. Use Python 3.12; install PyTorch first:
+# python -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+# python -m pip install -r requirements/cpu-reference.txt
+# python -m pip install -e ".[test,plots]"
+# This is a direct-dependency profile, not a lock of all transitive dependencies.
+torch==2.5.1
+numpy==1.26.4
+scipy==1.13.1
+pytest==8.3.5
+matplotlib==3.9.4

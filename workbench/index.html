@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMM Workbench</title>
+<script src="vendor/plotly.min.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --surface-1:#fcfcfb; --page:#f9f9f7;
+  --ink-1:#0b0b0b; --ink-2:#52514e; --ink-3:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --good:#0ca30c; --critical:#d03b3b;
+  --seq0:#cde2fb; --seq4:#0d366b; --bin0:#f0efec; --bin1:#184f95;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --surface-1:#1a1a19; --page:#0d0d0d;
+    --ink-1:#ffffff; --ink-2:#c3c2b7; --ink-3:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+    --bin0:#383835; --bin1:#86b6ef;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin:0; background:var(--page); color:var(--ink-1);
+  font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+header { display:flex; align-items:baseline; gap:16px; padding:10px 18px;
+  border-bottom:1px solid var(--border); background:var(--surface-1); }
+header h1 { font-size:17px; margin:0; }
+header .env { color:var(--ink-3); font-size:12px; flex:1; }
+header .lang button { padding:2px 8px; font-size:12px; border-radius:4px; }
+header .lang button.active { background:var(--s1); border-color:var(--s1); color:#fff; }
+main { display:flex; align-items:flex-start; }
+#panel { width:360px; flex:none; padding:12px 14px 40px; height:calc(100vh - 46px);
+  overflow-y:auto; border-right:1px solid var(--border); background:var(--surface-1); }
+#content { flex:1; padding:12px 18px 60px; height:calc(100vh - 46px); overflow-y:auto; }
+fieldset { border:1px solid var(--border); border-radius:8px; margin:0 0 10px;
+  padding:8px 10px; }
+legend { font-weight:600; font-size:13px; padding:0 4px; }
+.row { display:flex; gap:8px; margin:4px 0; align-items:center; flex-wrap:wrap; }
+.row label { flex:none; width:118px; color:var(--ink-2); font-size:12.5px; }
+.row input, .row select { flex:1; min-width:60px; padding:3px 6px;
+  border:1px solid var(--axis); border-radius:5px; background:var(--page);
+  color:var(--ink-1); font:inherit; font-variant-numeric:tabular-nums; }
+.row input.narrow { max-width:70px; flex:none; }
+.row.check { align-items:flex-start; }
+.row.check input[type=checkbox] { width:auto; flex:none; margin:4px 8px 0 2px; }
+.row.check label { width:auto; flex:1; color:var(--ink-1); font-size:12.5px; line-height:1.4; }
+.row.select-inline label { width:auto; }
+#traj_bar { display:flex; justify-content:flex-end; align-items:center; gap:8px; margin:6px 0 -4px; }
+#xz_bar { display:flex; justify-content:flex-end; align-items:center; gap:8px; }
+#xz_bar select, #traj_bar select { padding:2px 6px; font-size:12px; border:1px solid var(--axis); border-radius:5px; background:var(--page); color:var(--ink-1); }
+.hint { color:var(--ink-3); font-size:11.5px; margin:2px 0 0; }
+.hint.warn { color:var(--critical); }
+button { padding:7px 14px; border:1px solid var(--axis); border-radius:6px;
+  background:var(--surface-1); color:var(--ink-1); font:inherit; cursor:pointer; }
+button.primary { background:var(--s1); border-color:var(--s1); color:#fff; font-weight:600; }
+button:disabled { opacity:.5; cursor:default; }
+#tabs { display:flex; gap:4px; border-bottom:1px solid var(--border);
+  margin-bottom:12px; position:sticky; top:0; background:var(--page); z-index:5; }
+#tabs button { border:none; border-bottom:2px solid transparent; border-radius:0;
+  background:none; color:var(--ink-2); padding:8px 12px; }
+#tabs button.active { color:var(--ink-1); border-bottom-color:var(--s1); font-weight:600; }
+.tabpane { display:none; }
+.tabpane.active { display:block; }
+table.data { border-collapse:collapse; margin:8px 0; font-variant-numeric:tabular-nums; }
+table.data th, table.data td { border-bottom:1px solid var(--grid); padding:4px 10px;
+  text-align:right; font-size:13px; }
+table.data th { color:var(--ink-2); font-weight:600; border-bottom:1px solid var(--axis); }
+table.data td:first-child, table.data th:first-child { text-align:left; }
+tr.hilite td { font-weight:700; color:var(--s1); }
+.cards { display:flex; gap:12px; flex-wrap:wrap; margin:6px 0 14px; }
+.card { background:var(--surface-1); border:1px solid var(--border); border-radius:10px;
+  padding:10px 16px; min-width:150px; }
+.card .k { color:var(--ink-3); font-size:12px; }
+.card .v { font-size:24px; font-weight:700; margin-top:2px; }
+.card .v small { font-size:13px; font-weight:400; color:var(--ink-2); }
+.chart { background:var(--surface-1); border:1px solid var(--border); border-radius:10px;
+  margin:10px 0; padding:4px; }
+.chartrow { display:flex; gap:10px; flex-wrap:wrap; }
+.chartrow .chart { flex:1 1 420px; min-width:380px; }
+h3 { font-size:14px; margin:18px 0 4px; }
+.status-running { color:var(--s2); font-weight:600; }
+.status-done { color:var(--good); font-weight:600; }
+.status-error, .status-cancelled { color:var(--critical); font-weight:600; }
+#msg { color:var(--critical); white-space:pre-wrap; font-size:12.5px; }
+a.runlink { color:var(--s1); cursor:pointer; text-decoration:underline; }
+pre.err { background:var(--surface-1); border:1px solid var(--border); padding:8px;
+  overflow:auto; font-size:12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1 data-i18n="h1"></h1>
+  <span class="env" id="envline"></span>
+  <span class="lang"><button type="button" data-lang="zh">中文</button> <button type="button" data-lang="en">English</button></span>
+</header>
+<main>
+<div id="panel">
+  <p class="hint warn" id="env_hint"></p>
+  <fieldset><legend data-i18n="leg_incidence"></legend>
+    <div class="row"><label data-i18n="lab_wavelength"></label><input id="wavelength_nm" type="number" value="660" step="1"></div>
+    <div class="row"><label data-i18n="lab_theta"></label><input id="theta_deg" type="number" value="0" step="0.5">
+      <label style="width:34px">φ (°)</label><input id="phi_deg" class="narrow" type="number" value="0" step="1"></div>
+    <div class="row"><label data-i18n="lab_pol"></label><select id="polarization">
+      <option value="x" selected data-i18n="opt_pol_x"></option><option value="y" data-i18n="opt_pol_y"></option>
+      <option value="custom" data-i18n="opt_pol_custom"></option></select></div>
+    <div class="row" id="jones_row" hidden><label>Jones (jx, jy)</label>
+      <input id="jx_re" class="narrow" type="number" value="1" step="0.1"><input id="jx_im" class="narrow" type="number" value="0" step="0.1">
+      <input id="jy_re" class="narrow" type="number" value="0" step="0.1"><input id="jy_im" class="narrow" type="number" value="0" step="0.1"></div>
+    <div class="row"><label data-i18n="lab_n_inc"></label><input id="n_incident" type="number" value="1.46" step="0.01"></div>
+    <div class="row"><label data-i18n="lab_n_out"></label><input id="n_output" type="number" value="1.0" step="0.01"></div>
+  </fieldset>
+  <fieldset><legend data-i18n="leg_materials"></legend>
+    <div class="row"><label data-i18n="lab_n_feat"></label><input id="n_feature" type="number" value="3.2" step="0.01"></div>
+    <div class="row"><label data-i18n="lab_n_bg"></label><input id="n_background" type="number" value="1.0" step="0.01"></div>
+    <div class="row"><label data-i18n="lab_thick"></label><input id="thickness_nm" type="number" value="800" step="10"></div>
+  </fieldset>
+  <fieldset><legend data-i18n="leg_period"></legend>
+    <div class="row"><label data-i18n="lab_lx"></label><input id="lx_nm" type="number" value="2400" step="10"></div>
+    <div class="row"><label data-i18n="lab_ly"></label><input id="ly_nm" type="number" value="700" step="10"></div>
+    <div class="row"><label data-i18n="lab_grid"></label><input id="nx" class="narrow" type="number" value="480" step="1">
+      <input id="ny" class="narrow" type="number" value="140" step="1"></div>
+    <p class="hint" id="pixel_hint"></p>
+  </fieldset>
+  <fieldset><legend data-i18n="leg_orders"></legend>
+    <div class="row"><label data-i18n="lab_descent"></label><input id="mx" class="narrow" type="number" value="16" step="1">
+      <input id="my" class="narrow" type="number" value="4" step="1"></div>
+    <div class="row"><label data-i18n="lab_gate"></label><input id="gx" class="narrow" type="number" value="32" step="1">
+      <input id="gy" class="narrow" type="number" value="8" step="1"></div>
+    <div class="row"><label data-i18n="lab_ladder"></label><input id="levels_certify" value="40,10; 48,12" data-i18n-title="title_ladder"></div>
+    <div class="row"><label></label>
+      <button type="button" id="btn_rule" style="padding:3px 10px;font-size:12px" data-i18n="btn_rule"></button>
+      <button type="button" id="btn_ladder" style="padding:3px 10px;font-size:12px" data-i18n="btn_ladder"></button></div>
+    <p class="hint" id="rule_hint"></p>
+    <div class="row"><label data-i18n="lab_target"></label><input id="tm" class="narrow" type="number" value="3" step="1">
+      <input id="tn" class="narrow" type="number" value="0" step="1"></div>
+    <p class="hint" id="order_hint"></p>
+  </fieldset>
+  <fieldset><legend data-i18n="leg_fab"></legend>
+    <div class="row"><label data-i18n="lab_filter"></label><input id="filter_nm" type="number" value="60" step="5"></div>
+    <div class="row"><label data-i18n="lab_threshold"></label><input id="threshold" type="number" value="0.5" step="0.05"></div>
+    <div class="row"><label data-i18n="lab_sym"></label><select id="symmetry">
+      <option value="y" selected data-i18n="opt_sym_y"></option><option value="x" data-i18n="opt_sym_x"></option>
+      <option value="xy">x + y</option><option value="none" data-i18n="opt_sym_none"></option></select></div>
+    <div class="row"><label data-i18n="lab_cd"></label><input id="cd_bias_nm" value="-20, 20" data-i18n-title="title_cd"></div>
+  </fieldset>
+  <fieldset><legend data-i18n="leg_protocol"></legend>
+    <div class="row"><label data-i18n="lab_protocol"></label><select id="protocol">
+      <option value="guarded_mixed" selected data-i18n="opt_proto_gm"></option>
+      <option value="legacy_chain" data-i18n="opt_proto_legacy"></option></select></div>
+    <div id="gm_opts">
+      <div class="row"><label data-i18n="lab_gm_ramp"></label><input id="gm_beta0" class="narrow" type="number" value="2" step="1" data-i18n-title="title_gm_ramp">
+        <input id="gm_beta_end" class="narrow" type="number" value="2000" step="100" data-i18n-title="title_gm_ramp"></div>
+      <div class="row"><label data-i18n="lab_gm_mix"></label><input id="gm_mix_k" class="narrow" type="number" value="4" step="1" data-i18n-title="title_gm_mix_k">
+        <input id="gm_mix_from_beta" class="narrow" type="number" value="16" step="1" data-i18n-title="title_gm_mix_beta"></div>
+      <div class="row check"><input id="gm_guards" type="checkbox" checked><label for="gm_guards" data-i18n="lab_gm_guards"></label></div>
+      <div class="row check"><input id="gm_cadence" type="checkbox"><label for="gm_cadence" data-i18n="lab_gm_cadence"></label></div>
+      <div class="row check"><input id="gm_rise" type="checkbox"><label for="gm_rise" data-i18n="lab_gm_rise"></label></div>
+      <div class="row check"><input id="repair_enabled" type="checkbox"><label for="repair_enabled" data-i18n="lab_repair"></label></div>
+      <div id="repair_opts" hidden>
+        <div class="row"><label data-i18n="lab_repair_trigger"></label><select id="repair_trigger">
+          <option value="manual" selected data-i18n="opt_trig_manual"></option>
+          <option value="always" data-i18n="opt_trig_always"></option>
+          <option value="numeric" data-i18n="opt_trig_numeric"></option></select></div>
+        <div class="row" id="repair_numeric_row" hidden><label data-i18n="lab_repair_bar"></label><input id="repair_bar" class="narrow" type="number" step="0.01" placeholder="—" data-i18n-title="title_repair_bar">
+          <input id="repair_optimism_max" class="narrow" type="number" value="0.05" step="0.01" data-i18n-title="title_repair_opt"></div>
+        <div class="row"><label data-i18n="lab_repair_beta"></label><select id="repair_beta_mode">
+          <option value="fixed" selected data-i18n="opt_beta_fixed"></option>
+          <option value="star" data-i18n="opt_beta_star"></option></select>
+          <input id="repair_beta_fixed" class="narrow" type="number" value="64" step="8"></div>
+        <div class="row"><label data-i18n="lab_hops"></label><input id="repair_hops" class="narrow" type="number" value="15" step="1">
+          <input id="repair_stop_after" class="narrow" type="number" value="12" step="1" data-i18n-title="title_stop_after"></div>
+        <div class="row"><label data-i18n="lab_alphas"></label><input id="chain_alphas" value="0.1, 0.25, 0.5" data-i18n-title="title_alphas"></div>
+        <div class="row"><label data-i18n="lab_redescent_k"></label><input id="chain_redescent_steps" class="narrow" type="number" value="30" step="5">
+          <input id="repair_re_k" class="narrow" type="number" value="4" step="1"></div>
+        <div class="row"><label data-i18n="lab_noise_seed"></label><input id="chain_noise_seed" type="number" value="9100" step="100" data-i18n-title="title_noise_seed"></div>
+        <div class="row check"><input id="compare_restart_budget" type="checkbox"><label for="compare_restart_budget" data-i18n="lab_budget_cmp"></label></div>
+      </div>
+    </div>
+    <div id="legacy_opts" hidden>
+      <div class="row"><label data-i18n="lab_beta"></label><input id="beta_lo" class="narrow" type="number" value="1" step="1">
+        <input id="beta_hi" class="narrow" type="number" value="64" step="1"></div>
+      <div class="row"><label data-i18n="lab_ckpt"></label><input id="ckpt_every" type="number" value="50" step="1" data-i18n-title="title_ckpt"></div>
+      <div class="row"><label data-i18n="lab_chain_start"></label><select id="chain_start_kind">
+        <option value="restarts" selected data-i18n="opt_start_restarts"></option>
+        <option value="seed" data-i18n="opt_start_seed"></option>
+        <option value="run_best" data-i18n="opt_start_run"></option></select></div>
+      <div class="row" id="chain_run_row" hidden><label data-i18n="lab_saved_run"></label><select id="chain_run"></select></div>
+      <div class="row"><label data-i18n="lab_jumps"></label><input id="chain_jumps" type="number" value="40" step="5"></div>
+      <div class="row"><label data-i18n="lab_noise_seed"></label><input id="lc_noise_seed" type="number" value="9100" step="100" data-i18n-title="title_noise_seed"></div>
+      <div class="row"><label data-i18n="lab_alphas"></label><input id="lc_alphas" value="0.1, 0.25, 0.5" data-i18n-title="title_alphas"></div>
+      <div class="row"><label data-i18n="lab_redescent"></label><input id="lc_redescent_steps" class="narrow" type="number" value="30" step="5">
+        <input id="chain_beta" class="narrow" type="number" value="64" step="8"></div>
+      <div class="row"><label data-i18n="lab_accept"></label><select id="accept_rule">
+        <option value="nominal" selected data-i18n="opt_accept_nominal"></option>
+        <option value="maximin_cd" data-i18n="opt_accept_maximin"></option></select></div>
+      <div class="row check"><input id="lc_budget" type="checkbox" checked><label for="lc_budget" data-i18n="lab_budget_cmp"></label></div>
+    </div>
+  </fieldset>
+  <fieldset><legend data-i18n="leg_optset"></legend>
+    <div class="row"><label data-i18n="lab_steps"></label><input id="steps" type="number" value="219" step="1"></div>
+    <div class="row"><label data-i18n="lab_seeds"></label><input id="seeds" value="2029, 2030, 2031" data-i18n-title="title_seeds"></div>
+    <div class="row"><label data-i18n="lab_lr"></label><input id="lr0" type="number" value="0.02" step="0.005"></div>
+  </fieldset>
+  <fieldset><legend data-i18n="leg_engine"></legend>
+    <div class="row"><label data-i18n="lab_engine"></label><select id="engine">
+      <option value="gpu_c64" selected data-i18n="opt_engine_gpu"></option>
+      <option value="cpu_c128" data-i18n="opt_engine_cpu"></option></select></div>
+    <div class="row check"><input id="compare_torcwa" type="checkbox" checked><label for="compare_torcwa" data-i18n="lab_cmp_torcwa"></label></div>
+    <div class="row check"><input id="compare_lumerical" type="checkbox"><label for="compare_lumerical" data-i18n="lab_cmp_lum"></label></div>
+    <div class="row"><label data-i18n="lab_lum_k"></label><input id="lumerical_kvecs" value="201, 401" data-i18n-title="title_lum_k"></div>
+    <div class="row check"><input id="memory_efficient" type="checkbox" checked><label for="memory_efficient" data-i18n="lab_me"></label></div>
+    <div class="row"><label>save_on_cpu</label><select id="save_on_cpu">
+      <option value="auto" selected data-i18n="opt_off_auto"></option><option value="on" data-i18n="opt_off_on"></option>
+      <option value="off" data-i18n="opt_off_off"></option></select></div>
+    <div class="row"><label data-i18n="lab_zmax"></label><input id="field_zin_nm" class="narrow" type="number" value="1000" step="100" data-i18n-title="title_zin">
+      <input id="field_zmax_nm" class="narrow" type="number" value="2500" step="100" data-i18n-title="title_zmax"></div>
+    <div class="row"><label data-i18n="lab_field_views"></label><span class="hint" style="flex:1" data-i18n="fv_always"></span></div>
+    <div class="row check"><input id="fv_int_xz" type="checkbox"><label for="fv_int_xz" data-i18n="fv_int_xz"></label></div>
+    <div class="row check"><input id="fv_phase_xz" type="checkbox"><label for="fv_phase_xz" data-i18n="fv_phase_xz"></label></div>
+    <div class="row check"><input id="fv_xy_out" type="checkbox"><label for="fv_xy_out" data-i18n="fv_xy_out"></label></div>
+    <div class="row check"><input id="fv_xy_layer" type="checkbox"><label for="fv_xy_layer" data-i18n="fv_xy_layer"></label></div>
+  </fieldset>
+  <fieldset><legend data-i18n="leg_source"></legend>
+    <div class="row"><label data-i18n="lab_src"></label><select id="pattern_kind">
+      <option value="seed" selected data-i18n="opt_src_seed"></option>
+      <option value="uniform" data-i18n="opt_src_uniform"></option>
+      <option value="run_best" data-i18n="opt_src_run"></option></select></div>
+    <div class="row" id="src_seed_row"><label data-i18n="lab_src_seed"></label><input id="src_seed" type="number" value="2029"></div>
+    <div class="row" id="src_fill_row" hidden><label data-i18n="lab_src_fill"></label><input id="src_fill" type="number" value="1" step="0.1"></div>
+    <div class="row" id="src_run_row" hidden><label data-i18n="lab_saved_run"></label><select id="src_run"></select></div>
+  </fieldset>
+  <div class="row" style="gap:10px">
+    <button class="primary" id="btn_optimize" data-i18n="btn_optimize"></button>
+    <button id="btn_solve" data-i18n="btn_solve"></button>
+  </div>
+  <p id="msg"></p>
+</div>
+<div id="content">
+  <div id="tabs">
+    <button data-tab="jobs" class="active" data-i18n="tab_jobs"></button>
+    <button data-tab="patterns" data-i18n="tab_patterns"></button>
+    <button data-tab="fields" data-i18n="tab_fields"></button>
+    <button data-tab="torcwa" data-i18n="tab_torcwa"></button>
+    <button data-tab="summary" data-i18n="tab_summary"></button>
+    <button data-tab="history" data-i18n="tab_history"></button>
+  </div>
+  <div class="tabpane active" id="tab-jobs">
+    <div class="cards" id="job_cards"></div>
+    <p class="hint" data-i18n-html="hint_traj"></p>
+    <div id="traj_bar"><label for="traj_mode" data-i18n="lab_traj_mode"></label><select id="traj_mode">
+      <option value="auto" selected data-i18n="traj_auto"></option><option value="all" data-i18n="traj_all"></option>
+      <option value="current" data-i18n="traj_current"></option><option value="ckpt" data-i18n="traj_ckpt"></option></select></div>
+    <div class="chart" id="traj_chart" style="height:360px"></div>
+    <div class="chart" id="chain_chart" style="height:340px" hidden></div>
+    <div class="chart" id="budget_chart" style="height:320px" hidden></div>
+    <h3 data-i18n="h_joblist"></h3>
+    <div id="job_list"></div>
+    <pre class="err" id="job_error" hidden></pre>
+  </div>
+  <div class="tabpane" id="tab-patterns">
+    <p class="hint" id="pat_hint"></p>
+    <div id="patterns_container"></div>
+  </div>
+  <div class="tabpane" id="tab-fields">
+    <div class="cards" id="field_cards"></div>
+    <div class="chart" id="orders_bar" style="height:300px"></div>
+    <h3 data-i18n="h_orders_table"></h3>
+    <div id="orders_table"></div>
+    <p class="hint" id="fields_note"></p>
+    <div class="chart" id="field_xz_re" style="height:520px"></div>
+    <div id="xz_bar" style="margin:6px 0 -4px" hidden><label for="xz_layer_mode" data-i18n="lab_xz_layer"></label><select id="xz_layer_mode">
+      <option value="section" selected data-i18n="xzl_section"></option><option value="field" data-i18n="xzl_field"></option></select></div>
+    <div class="chartrow">
+      <div class="chart" id="field_xz_int" style="height:520px" hidden></div>
+      <div class="chart" id="field_xz_phase" style="height:520px" hidden></div>
+    </div>
+    <div class="chartrow">
+      <div class="chart" id="field_xy_int" style="height:300px" hidden></div>
+      <div class="chart" id="field_xy_ph" style="height:300px" hidden></div>
+    </div>
+  </div>
+  <div class="tabpane" id="tab-torcwa">
+    <h3 data-i18n="h_conv"></h3>
+    <p class="hint" data-i18n-html="hint_conv"></p>
+    <div class="chart" id="conv_chart" style="height:320px"></div>
+    <div id="conv_table"></div>
+    <h3 data-i18n="h_torcwa_eta"></h3>
+    <div id="torcwa_status" class="hint"></div>
+    <div id="torcwa_table"></div>
+    <div class="chart" id="torcwa_bar" style="height:320px"></div>
+    <h3 data-i18n="h_lum"></h3>
+    <div id="lumerical_status" class="hint"></div>
+    <div id="lumerical_table"></div>
+  </div>
+  <div class="tabpane" id="tab-summary">
+    <div class="cards" id="summary_cards"></div>
+    <div id="warn_block" class="hint warn"></div>
+    <div id="repair_block" hidden>
+      <h3 data-i18n="h_repair"></h3><div id="repair_table"></div>
+      <p class="hint" id="repair_action"></p>
+    </div>
+    <div id="chain_block" hidden>
+      <h3 data-i18n="h_chain"></h3><div id="chain_table"></div>
+    </div>
+    <div id="budget_block" hidden>
+      <h3 data-i18n="h_budget"></h3>
+      <p class="hint" data-i18n="hint_budget"></p>
+      <div id="budget_table"></div>
+    </div>
+    <div id="opt_compare_block" hidden>
+      <h3 data-i18n="h_optcmp"></h3>
+      <p class="hint" data-i18n-html="hint_optcmp"></p>
+      <div id="opt_compare_table"></div>
+    </div>
+    <div id="tickets_block" hidden>
+      <h3 data-i18n="h_tickets"></h3><p class="hint" data-i18n="hint_tickets"></p><div id="tickets_table"></div>
+      <h3 data-i18n="h_guard"></h3><div id="guard_table"></div>
+      <div id="cadence_block" hidden><h3 data-i18n="h_cadence"></h3><div id="cadence_table"></div></div>
+    </div>
+    <div id="restarts_block"><h3 data-i18n="h_restarts"></h3><div id="restart_table"></div></div>
+    <h3 data-i18n="h_certify"></h3><div id="certify_table"></div>
+    <h3 data-i18n="h_robust"></h3><div id="robust_table"></div>
+    <h3 data-i18n="h_engine"></h3><div id="engine_table"></div>
+  </div>
+  <div class="tabpane" id="tab-history">
+    <p class="hint" data-i18n="hint_history"></p>
+    <div id="history_table"></div>
+  </div>
+</div>
+</main>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const state = { activeJob: null, pollTimer: null, current: null, runsList: [], env: null, thr: 0.5 };
+
+// ---------------------------------------------------------------- i18n
+const I18N = {
+zh: {
+  title: 'FMM Workbench · 可微 RCWA 逆设计工作台', h1: 'FMM 逆设计工作台',
+  connecting: '连接中…', backend_down: '后端未连接', no_gpu: '无 GPU（CPU 模式）', avail: '可用', unavail: '不可用', threads: '线程',
+  env_no_cuda: '未检测到 CUDA：求解引擎已切换为 CPU / complex128（慢，适合小问题）。',
+  env_no_torcwa: 'torcwa 未安装：TORCWA 对比已禁用（pip install torcwa 后重启）。',
+  env_no_lum: 'Lumerical API 不可用：交叉验证已禁用（{err}）。',
+  leg_incidence: '入射条件', leg_materials: '材料与厚度', leg_period: '周期与网格', leg_orders: '截断阶与目标',
+  leg_fab: '加工约束', leg_protocol: '优化协议', leg_optset: '优化设置', leg_engine: '引擎与对比', leg_source: '单次求解的图案来源',
+  lab_wavelength: '波长 λ (nm)', lab_theta: '入射角 θ (°)', lab_pol: '偏振', opt_pol_x: 'x 线偏振', opt_pol_y: 'y 线偏振', opt_pol_custom: '自定义 Jones',
+  lab_n_inc: '入射侧折射率', lab_n_out: '出射侧折射率', lab_n_feat: '结构折射率 n', lab_n_bg: '背景折射率 n', lab_thick: '膜厚 (nm)',
+  lab_lx: '周期 Λx (nm)', lab_ly: '周期 Λy (nm)', lab_grid: '网格 nx × ny',
+  lab_descent: '下降阶 (Mx,My)', lab_gate: '闸门阶 (Mx,My)', lab_ladder: '认证阶梯', title_ladder: '分号分隔；下降阶与闸门阶会自动作为前两点',
+  btn_rule: '按目标自动填阶', btn_ladder: '按网格延长阶梯', lab_target: '目标级次 (m,n)',
+  hint_orders: '<b>下降阶</b>：每步算梯度用的阶，便宜，只需让梯度方向对，永远不用它的数字做决定。<b>闸门阶</b>（≥2× 下降）：每个候选二值算一次前向，所有接受/选择都在这里做——切断 optimizer\'s curse。<b>认证阶梯</b>：交付二值的收敛阶梯，最高阶是报告值。三档都随目标级次缩放。',
+  lab_filter: '高斯滤波半径 (nm)', lab_threshold: '二值阈值', lab_beta: 'β 连续化 (低→高)', lab_sym: '镜面对称',
+  opt_sym_y: 'y 镜面（默认）', opt_sym_x: 'x 镜面', opt_sym_none: '无', lab_cd: 'cd 偏置审计 (nm)', title_cd: '逗号分隔；留空跳过',
+  lab_protocol: '协议', opt_proto_chain: '链式协议（默认：闸门选择 + 盆地跳跃）', opt_proto_restart: '基线：独立重启彩票（闸门检查点选择）',
+  lab_chain_start: '链起点', opt_start_restarts: '起点重启中的最优（按闸门选）', opt_start_seed: '单个种子下降', opt_start_run: '历史运行的最优潜变量',
+  lab_saved_run: '历史运行', lab_jumps: '跳数', lab_noise_seed: '跳跃噪声种子',
+  title_noise_seed: '第 j 跳的噪声用 种子+j；续跑同一现任时换一段（如 9200）以免重复同一批扰动',
+  lab_alphas: 'α 轮转', title_alphas: '逗号分隔，按序轮转', lab_redescent: '再下降步数 / β', lab_accept: '接受判据',
+  opt_accept_nominal: '标称 η@闸门 单调改进', opt_accept_maximin: 'min{标称, cd±偏置}@闸门（鲁棒，每跳 +2 前向）',
+  lab_budget_cmp: '等墙钟对照（链的墙钟改抽额外票，作证据）',
+  hint_chain: '链：每跳 = 现任 + α·0.08·滤波噪声 → 固定 β 再下降（新 Adam）→ 硬二值在闸门阶评一次 → 只有更好才接受。',
+  lab_steps: '下降步数（每票）', lab_ckpt: '二值检查点间隔（步）', title_ckpt: '每隔多少步把硬二值在闸门阶评一次；交付取最优检查点',
+  lab_seeds: '随机种子列表', title_seeds: '逗号分隔，一个种子 = 一次独立随机初始化 = 一张票；种子数 = 票数',
+  hint_seeds: '每个种子 = 一次独立随机初始化 → 一张票；多张票按闸门读数选一张（一个种子 = 不重启）。数字本身任意、仅用于可复现。<a class="runlink" onclick="toggleSeedHelp()">种子怎么定义？</a>',
+  seed_help: '种子经固定生成器 <code>torch.Generator().manual_seed(seed)</code> 产生 (ny×nx) 高斯噪声 → 滤波（滤波半径）→ 归一化 → 均值 0.5、幅度 0.08、裁剪到 [0.05,0.95] → 对称化，得到确定性初始潜变量 ρ₀。同一种子在任何设备/精度上给出同一条轨迹；不同种子是逆设计非凸性下的不同起点。',
+  lab_lr: 'Adam 初始 lr', lab_engine: '求解引擎', opt_engine_gpu: 'GPU / complex64（推荐）', opt_engine_cpu: 'CPU / complex128（高精度，慢）',
+  lab_cmp_torcwa: '与 TORCWA 对比（同结构、前向）', lab_cmp_torcwa_opt: '用 TORCWA 独立逆设计（头对头，约 ×2 时间）', lab_cmp_lum: 'Ansys Lumerical RCWA 交叉验证',
+  lab_lum_k: 'Lumerical k 向量', title_lum_k: '逗号分隔；Lumerical 的 max number k vectors 阶梯',
+  hint_lum: 'Lumerical 臂仅 x 偏振正入射（P 源约定）；每 k 约数秒，首次启动会话约 5 s。',
+  lab_me: '内存高效路径', opt_off_auto: '自动（本机显存：梯度阶 2N ≥ {n} 时开）', opt_off_on: '强制开', opt_off_off: '关', lab_zmax: '场图 z 范围：入射侧 / 出射侧 (nm)', title_zin: '入射侧（衬底）画多深', title_zmax: '出射侧画多远',
+  lab_src: '来源', opt_src_seed: '随机种子初始图案', opt_src_uniform: '均匀填充', opt_src_run: '历史运行的最优图案', lab_src_seed: '种子', lab_src_fill: '填充值 0–1',
+  btn_optimize: '运行优化', btn_solve: '单次求解',
+  tab_jobs: '运行进度', tab_patterns: '图案', tab_fields: '场 / 相位', tab_torcwa: '引擎对比', tab_summary: '结果汇总', tab_history: '历史运行',
+  hint_traj: '细线 = 下降阶的连续松弛值（当前 β 的灰度密度，<b>不可交付、系统性偏高</b>；闸门阶步处为探针值）；◆ = 硬二值在闸门阶的检查点（交付候选）。',
+  h_joblist: '任务列表',
+  hint_patterns: '每个优化引擎各自最优重启的潜变量 → 滤波密度 → 交付二值（阈值 {thr}）。坐标为物理坐标 (nm)。',
+  h_orders_table: '透射级次表', h_conv: '截断收敛：同一结构 η 随 2N 的变化',
+  hint_conv: 'RCWA/FMM 用有限个傅里叶级次展开不连续的介电分布，级次越多越能解析二值边界（Gibbs 现象）。所以<b>同一结构在不同截断阶给出不同的 η，这是物理收敛、不是错误</b>：最高阶是当前最佳估计，阶间差是"参考阶不确定度"。注意这跟"引擎一致性"是两个独立的轴——下表里本引擎与 TORCWA 在<b>每一个阶上</b>都一致到 ~1e-5，阶与阶之间的变化两个引擎同步发生。',
+  h_torcwa_eta: '目标级次效率与耗时（同一结构，多引擎）', h_lum: 'Ansys Lumerical RCWA 交叉验证',
+  h_chain: '旧版链式协议', h_budget: '等墙钟对照：修复链 vs 额外票',
+  hint_budget: '预算 = 修复链的墙钟（旧版协议：起点 + 跳跃）。对照臂用同样的票（种子从 max(seeds)+1000 起），只在预计能在预算内完成时才开新票；比较“原票 + 额外票按闸门选一”与链现任，两边都在同一认证阶梯上打分。',
+  h_optcmp: '优化引擎头对头（本引擎 vs TORCWA）',
+  hint_optcmp: '同一设计映射、同一 Adam、同一学习率/β 计划、同一批种子；只有正解与梯度的引擎不同。两边的最终二值都用<b>本引擎在同一认证阶</b>打分（中立评分器），所以比的是"谁找到更好的结构"，不是评分器差异。',
+  h_restarts: '各重启', h_certify: '认证阶梯', h_robust: '鲁棒审计（cd 偏置）', h_engine: '引擎与耗时',
+  hint_history: '已保存到 workbench/data/runs/ 的运行。点击载入到各标签页。',
+  opt_proto_gm: '守卫混阶票（默认：混阶下降 + 闸门选票 + 认证）', opt_proto_legacy: '旧版链式协议（起点重启 + 40 跳 β=64；仅供对照）',
+  lab_gm_ramp: 'β 坡 β₀ → β_end', title_gm_ramp: '几何坡 β(t) = β₀ (β_end/β₀)^(t/T)；README 坡是 2 → 2000',
+  lab_gm_mix: '混阶 k / 起始 β', title_gm_mix_k: '每 k 步用一次闸门阶梯度替代下降阶梯度（同一 Adam 状态）', title_gm_mix_beta: '从首个 β ≥ 此值的步起混阶（β<16 时下降阶梯度已与高阶一致）',
+  lab_gm_guards: '范数守卫（complex64 错误梯度：重算 + 稳定性判据）',
+  lab_gm_cadence: 'D1 自适应混阶节奏（k ∈ {2,4,8}，由探针余弦决定）', lab_gm_rise: 'D2 在线升档（需 D1；下降阶逐档升到闸门阶）',
+  hint_gm: '一张票 = 一条 219 步的下降；从 β ≥ 16 起每 4 步用闸门阶梯度（爬截断误差的解药），每次梯度都经范数守卫；30 个硬二值检查点在闸门阶读数，<b>交付 = 闸门读数最好的检查点</b>。种子数 = 票数；按闸门读数选一张，在一档与顶档认证。',
+  lab_repair: '修复链（盆地跳跃，对交付票起链）', lab_repair_trigger: '触发方式',
+  opt_trig_manual: '手动（运行结束后在"结果汇总"里起链）', opt_trig_always: '总是（认证后直接起链）', opt_trig_numeric: '数值判据（一档 < 下限 且 乐观量 < 上限）',
+  lab_repair_bar: '一档下限 / 乐观量上限', title_repair_bar: '交付票的一档认证值低于此值才起链（留空 = 不起链）', title_repair_opt: '闸门乐观量 = 闸门读数 − 一档；S7：< 0.03 时修复 10/11 成功，≥ 0.03 时 5/17',
+  lab_repair_beta: '再下降 β', opt_beta_fixed: '固定值（默认 64）', opt_beta_star: 'max(β⋆, 64)，β⋆ = 交付检查点的 β',
+  lab_hops: '跳数 / 连拒即停', title_stop_after: '连续这么多次拒绝后提前结束', lab_redescent_k: '再下降步数 / 混阶 k',
+  hint_repair: '每跳 = 现任潜变量 + α·0.08·滤波噪声 → 固定 β 再下降（新 Adam，k=4 混阶，同样的守卫）→ 硬二值在闸门阶评一次 → 只有更高才接受（接受时读一档）。S7 数据：再下降 β=64 在同父本对照里从未输过；β⋆≈10³ 的链在三选一父本上 0 接受；修复对早见顶/坍缩且乐观量小的票有效（+0.2…0.4），对强父本无效。',
+  cost_gm: 'GPU：{n} 张票 × {steps} 步，每票 {high} 次闸门阶梯度 + {ck} 个检查点（闸门读数）+ 1 次一档读数；实际价格以运行实测为准（P2 m=4 约 13 min/票，认证顶档 (64,9) 约 2 min）',
+  c_rung1: '一档认证 η @ ({lv})', c_optimism: '闸门乐观量（闸门 − 一档）', proto_gm: '守卫混阶票', proto_legacy: '旧版链式',
+  ticket_of: '票 {i}/{n}', c_guard: '守卫：替换 / 触发', high_mark: '▲ 闸门阶', re_step_of: '再下降 {t}/{n}',
+  h_tickets: '各票（交付 = 闸门最优检查点；一档 = 第一认证档）', hint_tickets: '票价按 S7 口径 = 下降墙钟（不含探针）+ 12 次闸门读数；"实测"是这张票的真实墙钟（含 30 个检查点读数与一档读数）。',
+  th_beta_star: 'β⋆', th_rung1: '一档 η', th_optimism: '乐观量', th_final_rung1: '终值一档', th_cliff: '断崖', th_high: '高阶步', th_guard: '守卫 触发/替换', th_c128: 'c128', th_cost: '票价 s', th_unit: '实测 s',
+  h_guard: '守卫统计（各阶）', th_evals: '评估数', th_trig: '触发', th_tp: '替换（真阳性）', th_per100: '替换 / 100 次', th_kept: '保留原梯度', th_skip: '跳过高阶',
+  h_cadence: 'D1 / D2：节奏与升档', th_k_final: '末端 k', th_rise_step: '升档步', th_level_final: '末端下降阶', th_n_high: '高阶步 / 预算',
+  h_repair: '修复链', r_trigger: '触发方式', r_decision: '判定', r_criteria: '一档 / 下限 · 乐观量 / 上限', r_beta_re: '再下降 β', r_hops: '跳 / 接受 / 假接受', r_gain: '一档：父本 → 现任', r_chain_wall: '链墙钟 s',
+  trig_manual: '手动', trig_always: '总是', trig_numeric: '数值判据',
+  reason_disabled: '未启用', reason_manual: '手动：本次运行未起链', reason_always: '总是起链', reason_numeric_ok: '满足数值判据', reason_numeric_no_bar: '未填一档下限，未起链', reason_numeric_rung1_not_below_bar: '一档不低于下限，未起链', reason_numeric_optimism_too_large: '乐观量不小于上限，未起链', reason_from_run: '从保存的运行手动起链',
+  chain_ran: '已起链', beta_mode_fixed: '固定', beta_mode_star: 'max(β⋆,64)', stopped_early: '连续 {n} 次拒绝提前结束',
+  btn_start_chain: '对这次交付票起链（手动）', chain_started: '已提交起链作业 {id}（在"运行进度"里查看）', chain_needs_save: '运行保存后可在"历史运行"里起链',
+  arm_tickets: '票 + 修复链', arm_control: '票 + 等墙钟额外票', chain_samples_gm: '{n} 张票 + {j} 跳（{a} 接受）', control_samples: '{b} 张原票 + {n} 张额外', best_from_original: '（最优仍是原票）', th_rung1_eta: '一档 η',
+  role_ticket: '票', role_control: '等墙钟票', btn_chain: '起链',
+  // dynamic
+  pixel: '像素 {a} × {b} nm',
+  order_hint: '下降阶 2N={twoN}；最高阶 ({lv}) 需网格 nx≥{nx}, ny≥{ny}', order_bad: ' —— 当前网格不满足！',
+  cpu_prefix: 'CPU 模式：实际时间远大于下面的 GPU 估算。',
+  cost_chain: 'GPU 估算：起点 {ns}×{steps} 步 ≈ {total} s；链每跳 ≈ {jump} s（再下降 + 闸门），{jumps} 跳 ≈ {chain} s{budget}；认证 2N≥4850 每次 60–75 s',
+  cost_budget: ' ×2（等预算重启对照）',
+  cost_restart: 'GPU 估算：每步 ≈ {per} s（按 (12,3)=0.106 s、N^2.13 标度外推），下降合计 ≈ {total} s{x2}；2N≥4850 的认证每次约 60–75 s',
+  cost_x2: ' ×2（含 TORCWA 优化臂）',
+  rule_hint: '阶规则（目标级次 {m}）：下降 ({d}) · 闸门 ({g}) · 认证 {ladder}', rule_clipped: ' —— 当前网格截断了规则阶，完整规则需要 nx≥{nx}, ny≥{ny}',
+  rule_fail: '规则计算失败：', ladder_none: '当前网格容不下比下降阶更高的阶：增大 nx/ny 或降低下降阶', submit_fail: '提交失败：',
+  queued: '排队中', th_job: '任务', th_type: '类型', th_status: '状态', th_time: '用时', btn_cancel: '取消', btn_view: '查看', btn_load: '载入',
+  st_queued: '排队', st_running: '运行中', st_done: '完成', st_error: '错误', st_cancelled: '已取消', type_optimize: '优化', type_solve: '求解',
+  c_status: '状态', c_phase: '阶段', c_step: '步', c_relaxed: '松弛 η / 最优二值@闸门', ph_descent: '下降', seed_word: '种子',
+  c_chain_phase: '链 · 跳 {j}/{n}（α={a}）', c_cand: '候选 / 现任 @闸门', c_accepts: '接受数',
+  c_rs_phase: '等预算重启 · 种子 {seed}（已 {n} 张）', c_budget: '预算',
+  ph_certify: '认证 ', ph_robust: 'cd 偏置审计', ph_fields: '场重构', ph_torcwa: 'TORCWA 前向对比', ph_lum: 'Lumerical 交叉验证', ph_solve: '求解',
+  role_ours: '本引擎', role_start: '起点重启', role_rs: '等预算重启', role_torcwa: 'TORCWA',
+  lab_traj_mode: '显示', traj_auto: '自动（≤4 张全画，更多只画 ◆）', traj_all: '全部', traj_current: '仅当前 / 交付票', traj_ckpt: '全部 ◆ + 当前票细线',
+  xz_re: 'Re({c})  x–z 切面（波前；入射 |E|=1；主导分量随偏振）', lab_field_views: '场图（可选）', fv_always: 'Re(E) x–z 切面总是绘制', fv_int_xz: '|E|² x–z 切面', fv_phase_xz: '相位 x–z 切面', fv_xy_out: '|E|² x–y 平面（出射侧一个波长处）', fv_xy_layer: '|E|² x–y 平面（层内中平面）', xz_phase: '相位 arg({c})  x–z 切面', lab_xz_layer: '|E|² 图的图案层带', xzl_section: '结构剖面（黑 = 材料）', xzl_field: '层内场', xy_layer: '|E|²  x–y 平面，层内 z={z0} nm（白底黑线 = 图案边界）', fld_layer_label: '图案层 {d} nm',
+  lab_relaxed: '（松弛）', lab_bin: '（二值@闸门）', hover_relaxed: '步 %{x} · 松弛 η=%{y:.4f}', hover_bin: '步 %{x} · 二值@闸门 η=%{y:.4f}',
+  traj_title: '下降：连续松弛值（细线）vs 二值@闸门检查点（◆）', ax_step: '步',
+  inc_name: '现任（闸门 η）', hover_inc: '跳 %{x} · 现任 η=%{y:.4f}', cand_name: '候选（接受 ● / 拒绝 ○）', accepted: '接受', rejected: '拒绝',
+  hover_cand: '跳 %{x} · 候选 η=%{y:.4f} · %{text}', chain_title: '链：候选 vs 现任（闸门阶 η，{acc}/{n} 接受）', ax_jump: '跳（0 = 起点）', ax_eta_gate: 'η@闸门',
+  lottery: '重启彩票', chain: '链', budget_pts: '各种子最优检查点（闸门 η）', hover_seed: '%{text} · η@闸门=%{y:.4f}', chain_star: '链现任（闸门 η）',
+  hover_chain: '链 · η@闸门=%{y:.4f}', top_cert: '最高认证阶 ({lv}) η', hover_cert: '%{x} · 认证 η=%{y:.4f}',
+  budget_title: '等墙钟对照（预算 {s} s）：链 vs {n} 张重启彩票', value: '值',
+  name_chain: '链交付', name_ours: '本引擎', name_rs_best: '等预算重启最优', conv_title: 'η(目标) vs 截断 2N（交付二值的收敛曲线）',
+  ax_2n: '截断 2N（傅里叶级次总数）', ax_eta_t: 'η（目标级次）', lab_descent_order: '下降阶', lab_gate_order: '闸门阶',
+  th_order: '截断阶', th_deta: 'Δη vs 前一阶', th_rel: '相对变化',
+  verdict_conv: '最高两阶相对变化 < 1%：可视为收敛，报告值取最高阶', verdict_not: '最高两阶相对变化 ≥ 1%：尚未收敛，请把认证阶梯再往上加（或提高网格 nx/ny）', verdict_one: '只有一个阶，无法判断收敛',
+  lum_not_run: 'Lumerical 交叉验证未运行：', th_kvec: 'k 向量', th_eta_tp: '目标 η (Tp)', th_tp: '总 Tp', th_rp: '总 Rp', th_dvs: '|Δ vs 本引擎最高阶|', th_time_s: '耗时 s', th_poly: '多边形(实+孔)',
+  lum_foot: '本引擎最高阶 η = {eta}；Lumerical 随 k 收敛，最高 k 为其最佳估计。三引擎（本 FMM / TORCWA / Lumerical RCWA）互为独立实现。',
+  eta_top_txt: '，η@最高认证阶 = {eta}', pat_title: '{label} 的方案', winner: '★ 优胜', pat_latent: '潜变量 ρ', pat_filtered: '滤波密度（{r} nm）', pat_binary: '交付二值图案',
+  c_eta_target: '目标级次 η', c_T: '总透射 T', c_R: '总反射 R', c_res: '能量残差', bar_title: '透射功率 per 传播级次（深色 = 目标）',
+  th_trans: '透射 η', th_refl: '反射', evanescent: '倏逝', xz_int: '|E|²  x–z 切面 (y={y0} nm；两个周期，z<0 入射侧、层内、z>h 出射侧)', xz_ph: '相位 arg(E)  x–z 切面', xy_int: '|E|²  x–y 平面 (z={z0} nm)', xy_ph: '相位 arg(E)  x–y 平面',
+  torcwa_not_run: 'TORCWA 对比未运行：', th_ours_eta: '本引擎 η', th_torcwa_eta: 'TORCWA η', th_ours_s: '本引擎耗时 s', th_torcwa_s: 'TORCWA 耗时 s', per_order_title: '逐级次对比 @ ({lv})',
+  c_reported: '报告值：η @ 认证阶 ({lv})', c_gate: '闸门值 @ ({lv})', c_drift: '闸门→认证漂移', c_proto: '协议 / 来源', proto_chain: '链式', proto_base: '基线', c_total: '总耗时',
+  partial_banner: '⚠ 部分结果：交付与认证已完成，等墙钟对照臂被取消而未运行。 ',
+  th_item: '项', th_value: '值', r_start: '起点', r_start_eta: '起点闸门 η', r_inc_eta: '现任闸门 η（接受判据：{rule}）', rule_nominal: '标称', rule_maximin: 'min{标称, cd±}',
+  r_acc: '接受 / 跳', r_alpha: 'α 轮转 · 再下降', steps_at: '{n} 步 @ β={b}', r_wall: '起点墙钟 / 链墙钟 / 合计',
+  th_arm: '臂', th_budget_s: '预算 s', th_samples: '样本', th_gate_eta: '闸门 η', th_cert_eta: '认证 η @({lv})', th_note: '备注',
+  arm_chain: '链式协议', chain_samples: '{s} 起点 + {j} 跳（{a} 接受）', delivered: '交付', arm_lottery: '重启彩票', tickets: '{n} 张',
+  best_w: '最优', median_w: '中位', worst_w: '最差', best_seed: '最优种子 {s}',
+  th_opt_engine: '优化引擎', th_best_seed: '最优种子', th_final_eta: '最终 η @ ({lv})', th_descent_s: '下降总耗时 s', th_n_restarts: '重启数',
+  th_role: '角色', th_engine: '引擎', th_seed: '种子', th_final_relaxed: '下降末松弛 η', th_best_gate: '最优二值@闸门 η', th_at_step: '@步', th_wall: '用时 s',
+  role_chain_start: '链起点', role_restart: '重启', none_restarts: '（无重启记录）', none: '（无）', not_run: '（未运行）',
+  th_total_T: '总 T', th_cd: 'cd 偏置 (nm)', th_eta_top: 'η @ 最高认证阶', e_threads: 'BLAS 线程', e_total: '总耗时 s',
+  th_run: '运行', th_target: '目标', th_best_eta: '最优/目标 η', th_cert: '认证 η',
+},
+en: {
+  title: 'FMM Workbench · differentiable RCWA inverse design', h1: 'FMM Inverse-Design Workbench',
+  connecting: 'connecting…', backend_down: 'backend not connected', no_gpu: 'no GPU (CPU mode)', avail: 'available', unavail: 'not available', threads: 'threads',
+  env_no_cuda: 'No CUDA detected: the solver engine was switched to CPU / complex128 (slow; fine for small problems).',
+  env_no_torcwa: 'torcwa is not installed: TORCWA comparisons are disabled (pip install torcwa, then restart).',
+  env_no_lum: 'Lumerical API not available: the cross-check is disabled ({err}).',
+  leg_incidence: 'Incidence', leg_materials: 'Materials & thickness', leg_period: 'Period & grid', leg_orders: 'Truncation orders & target',
+  leg_fab: 'Fabrication constraints', leg_protocol: 'Optimization protocol', leg_optset: 'Optimization settings', leg_engine: 'Engine & comparisons', leg_source: 'Pattern source (single solve)',
+  lab_wavelength: 'Wavelength λ (nm)', lab_theta: 'Incidence θ (°)', lab_pol: 'Polarization', opt_pol_x: 'x linear', opt_pol_y: 'y linear', opt_pol_custom: 'Custom Jones',
+  lab_n_inc: 'Incident-side index', lab_n_out: 'Exit-side index', lab_n_feat: 'Feature index n', lab_n_bg: 'Background index n', lab_thick: 'Thickness (nm)',
+  lab_lx: 'Period Λx (nm)', lab_ly: 'Period Λy (nm)', lab_grid: 'Grid nx × ny',
+  lab_descent: 'Descent order (Mx, My)', lab_gate: 'Gate order (Mx, My)', lab_ladder: 'Certification ladder', title_ladder: 'Semicolon-separated; the descent and gate orders are added automatically as the first two points',
+  btn_rule: 'Auto-fill orders from target', btn_ladder: 'Extend ladder to grid limit', lab_target: 'Target order (m, n)',
+  hint_orders: '<b>Descent order</b>: the order used for the gradient at every step. Cheap; it only has to point the gradient the right way, and its numbers are never used for decisions. <b>Gate order</b> (≥ 2× descent): one forward solve per candidate binary; every accept/select decision is made here, which cuts the optimizer\'s curse. <b>Certification ladder</b>: the convergence ladder of the delivered binary; the top order is the reported value. All three scale with the target order.',
+  lab_filter: 'Gaussian filter radius (nm)', lab_threshold: 'Binarization threshold', lab_beta: 'β continuation (low → high)', lab_sym: 'Mirror symmetry',
+  opt_sym_y: 'y mirror (default)', opt_sym_x: 'x mirror', opt_sym_none: 'none', lab_cd: 'CD-bias audit (nm)', title_cd: 'Comma-separated; leave empty to skip',
+  lab_protocol: 'Protocol', opt_proto_chain: 'Chain protocol (default: gate selection + basin hopping)', opt_proto_restart: 'Baseline: independent restart lottery (gate-checkpoint selection)',
+  lab_chain_start: 'Chain start', opt_start_restarts: 'Best of start restarts (chosen at gate)', opt_start_seed: 'Single-seed descent', opt_start_run: 'Best latent of a saved run',
+  lab_saved_run: 'Saved run', lab_jumps: 'Jumps', lab_noise_seed: 'Jump-noise seed',
+  title_noise_seed: 'Jump j uses noise seed (seed + j); when continuing the same incumbent, use another range (e.g. 9200) to avoid repeating the same perturbations',
+  lab_alphas: 'α rotation', title_alphas: 'Comma-separated, rotated in order', lab_redescent: 'Re-descent steps / β', lab_accept: 'Acceptance rule',
+  opt_accept_nominal: 'Nominal η@gate, monotone improvement', opt_accept_maximin: 'min{nominal, CD±bias}@gate (robust, +2 forwards per jump)',
+  lab_budget_cmp: 'Equal-wall-clock control (the chain\'s wall clock spent on extra tickets, as evidence)',
+  hint_chain: 'Chain: each jump = incumbent + α·0.08·filtered noise → re-descent at fixed β (fresh Adam) → hard binary scored once at the gate order → accepted only if better.',
+  lab_steps: 'Descent steps (per ticket)', lab_ckpt: 'Binary checkpoint interval (steps)', title_ckpt: 'Every N steps the hard binary is scored at the gate order; the best checkpoint is delivered',
+  lab_seeds: 'Random seeds', title_seeds: 'Comma-separated; one seed = one independent random initialization = one ticket; number of seeds = number of tickets',
+  hint_seeds: 'Each seed = one independent random initialization → one ticket; the best of several tickets is chosen by its gate reading (one seed = no restart). The numbers are arbitrary and only make runs reproducible. <a class="runlink" onclick="toggleSeedHelp()">How is a seed defined?</a>',
+  seed_help: 'The seed feeds a fixed generator <code>torch.Generator().manual_seed(seed)</code> that draws (ny×nx) Gaussian noise → filter (filter radius) → normalize → mean 0.5, amplitude 0.08, clipped to [0.05, 0.95] → symmetrize, giving a deterministic initial latent ρ₀. The same seed gives the same trajectory on any device/precision; different seeds are different starts in a non-convex inverse-design landscape.',
+  lab_lr: 'Adam initial lr', lab_engine: 'Solver engine', opt_engine_gpu: 'GPU / complex64 (recommended)', opt_engine_cpu: 'CPU / complex128 (high precision, slow)',
+  lab_cmp_torcwa: 'Compare with TORCWA (same structure, forward)', lab_cmp_torcwa_opt: 'Independent TORCWA inverse design (head-to-head, ~2× time)', lab_cmp_lum: 'Ansys Lumerical RCWA cross-check',
+  lab_lum_k: 'Lumerical k-vectors', title_lum_k: 'Comma-separated; ladder of Lumerical\'s "max number k vectors"',
+  hint_lum: 'The Lumerical arm supports x-polarized normal incidence only (P-source convention); a few seconds per k, plus about 5 s to start the session.',
+  lab_me: 'Memory-efficient path', opt_off_auto: 'Auto (this GPU: on when the gradient order has 2N ≥ {n})', opt_off_on: 'Force on', opt_off_off: 'Off', lab_zmax: 'Field-map z range: incident / exit side (nm)', title_zin: 'depth drawn on the incident (substrate) side', title_zmax: 'distance drawn on the exit side',
+  lab_src: 'Source', opt_src_seed: 'Random-seed initial pattern', opt_src_uniform: 'Uniform fill', opt_src_run: 'Best pattern of a saved run', lab_src_seed: 'Seed', lab_src_fill: 'Fill value 0–1',
+  btn_optimize: 'Run optimization', btn_solve: 'Single solve',
+  tab_jobs: 'Progress', tab_patterns: 'Patterns', tab_fields: 'Fields / phase', tab_torcwa: 'Engine comparison', tab_summary: 'Summary', tab_history: 'History',
+  hint_traj: 'Thin line = relaxed value at the descent order (gray-scale density at the current β, <b>not deliverable and systematically high</b>; the probe value at gate-order steps); ◆ = hard-binary checkpoints scored at the gate order (delivery candidates).',
+  h_joblist: 'Job list',
+  hint_patterns: 'For each optimizer engine, the best restart\'s latent → filtered density → delivered binary (threshold {thr}). Axes are physical coordinates (nm).',
+  h_orders_table: 'Transmitted orders', h_conv: 'Truncation convergence: η of the same structure vs 2N',
+  hint_conv: 'RCWA/FMM expands a discontinuous permittivity in a finite number of Fourier orders; more orders resolve the binary edges better (Gibbs phenomenon). So <b>the same structure gives different η at different truncation orders. That is physical convergence, not an error</b>: the top order is the current best estimate and the spread between orders is the "reference-order uncertainty". This is independent of engine agreement: in the table below, this engine and TORCWA agree to ~1e-5 <b>at every order</b>, and the change from order to order happens in both engines together.',
+  h_torcwa_eta: 'Target-order efficiency and time (same structure, several engines)', h_lum: 'Ansys Lumerical RCWA cross-check',
+  h_chain: 'Legacy chain protocol', h_budget: 'Equal-wall-clock control: repair chain vs extra tickets',
+  hint_budget: 'Budget = the repair chain\'s wall clock (legacy protocol: start + jumps). The control arm draws the same kind of tickets (seeds from max(seeds)+1000) and starts a new one only when it is expected to finish inside the budget; "original tickets + extra ones, best by gate" is compared with the chain incumbent, both scored on the same certification ladder.',
+  h_optcmp: 'Optimizer head-to-head (this engine vs TORCWA)',
+  hint_optcmp: 'Same design map, same Adam, same learning-rate/β schedule, same seeds; only the engine that provides values and gradients differs. Both final binaries are scored by <b>this engine at the same certification order</b> (neutral scorer), so the comparison is "who found the better structure", not a scorer difference.',
+  h_restarts: 'Restarts', h_certify: 'Certification ladder', h_robust: 'Robustness audit (CD bias)', h_engine: 'Engine & timing',
+  hint_history: 'Runs saved under workbench/data/runs/. Click to load one into the tabs.',
+  opt_proto_gm: 'Guarded mixed-order tickets (default: mixed-order descent + gate selection + certification)', opt_proto_legacy: 'Legacy chain protocol (start restarts + 40 jumps at β = 64; for comparison only)',
+  lab_gm_ramp: 'β ramp β₀ → β_end', title_gm_ramp: 'Geometric ramp β(t) = β₀ (β_end/β₀)^(t/T); the README ramp is 2 → 2000',
+  lab_gm_mix: 'Mixing k / from β', title_gm_mix_k: 'Every k-th gradient is taken at the gate order instead of the descent order (same Adam state)', title_gm_mix_beta: 'Mixing starts at the first step with β ≥ this value (below β = 16 the descent-order gradient already agrees with the high order)',
+  lab_gm_guards: 'Norm guard (complex64 wrong gradients: recompute + stability test)',
+  lab_gm_cadence: 'D1 adaptive mixing cadence (k ∈ {2,4,8} from the probe cosine)', lab_gm_rise: 'D2 online rung rise (needs D1; the descent order climbs to the gate order)',
+  hint_gm: 'One ticket = one 219-step descent; from β ≥ 16 every 4th gradient is taken at the gate order (the remedy for climbing the truncation error), every gradient passes the norm guard; 30 hard-binary checkpoints are read at the gate order and <b>the delivery is the best gate checkpoint</b>. Number of seeds = number of tickets; the best by gate reading is certified at rung 1 and at the top rung.',
+  lab_repair: 'Repair chain (basin hopping on the delivered ticket)', lab_repair_trigger: 'Trigger',
+  opt_trig_manual: 'Manual (start it from the Summary tab after the run)', opt_trig_always: 'Always (right after certification)', opt_trig_numeric: 'Numeric (rung 1 < bar AND optimism < max)',
+  lab_repair_bar: 'Rung-1 bar / optimism max', title_repair_bar: 'The chain starts only if the delivered rung-1 value is below this (empty = never)', title_repair_opt: 'Gate optimism = gate reading − rung 1; S7: repairs succeeded 10/11 below 0.03 and 5/17 above',
+  lab_repair_beta: 'Re-descent β', opt_beta_fixed: 'Fixed (default 64)', opt_beta_star: 'max(β*, 64), β* = β of the delivered checkpoint',
+  lab_hops: 'Hops / stop after', title_stop_after: 'End the chain after this many consecutive rejections', lab_redescent_k: 'Re-descent steps / mixing k',
+  hint_repair: 'Each hop = incumbent latent + α·0.08·filtered noise → re-descent at a fixed β (fresh Adam, k = 4 mixing, the same guards) → hard binary scored once at the gate order → accepted only if higher (rung 1 read on every accept). S7 data: re-descent at β = 64 never lost against β* on the same parent; chains at β* ≈ 10³ accepted nothing on best-of-3 parents; repair works on early-peaked / collapsed tickets with small optimism (+0.2…0.4) and does nothing on strong parents.',
+  cost_gm: 'GPU: {n} tickets × {steps} steps, each with {high} gate-order gradients + {ck} checkpoints (gate reads) + one rung-1 read; the real price is measured by the run (P2 m=4 ≈ 13 min per ticket, top-rung certification (64,9) ≈ 2 min)',
+  c_rung1: 'Rung-1 certified η @ ({lv})', c_optimism: 'Gate optimism (gate − rung 1)', proto_gm: 'guarded mixed-order tickets', proto_legacy: 'legacy chain',
+  ticket_of: 'ticket {i}/{n}', c_guard: 'Guard: replaced / triggered', high_mark: '▲ gate order', re_step_of: 're-descent {t}/{n}',
+  h_tickets: 'Tickets (delivery = best gate checkpoint; rung 1 = first certification rung)', hint_tickets: 'Ticket price in the S7 convention = descent wall (probe excluded) + 12 gate reads; "measured" is the ticket\'s real wall clock (30 checkpoint reads and the rung-1 read included).',
+  th_beta_star: 'β*', th_rung1: 'Rung-1 η', th_optimism: 'Optimism', th_final_rung1: 'Final rung 1', th_cliff: 'Cliff', th_high: 'High steps', th_guard: 'Guard trig/repl', th_c128: 'c128', th_cost: 'Price s', th_unit: 'Measured s',
+  h_guard: 'Guard statistics (per order)', th_evals: 'Evaluations', th_trig: 'Triggered', th_tp: 'Replaced (true positives)', th_per100: 'Replaced / 100', th_kept: 'Original kept', th_skip: 'High step skipped',
+  h_cadence: 'D1 / D2: cadence and rung rise', th_k_final: 'Final k', th_rise_step: 'Rise steps', th_level_final: 'Final descent order', th_n_high: 'High steps / budget',
+  h_repair: 'Repair chain', r_trigger: 'Trigger', r_decision: 'Decision', r_criteria: 'Rung 1 / bar · optimism / max', r_beta_re: 'Re-descent β', r_hops: 'Hops / accepts / false accepts', r_gain: 'Rung 1: parent → incumbent', r_chain_wall: 'Chain wall s',
+  trig_manual: 'manual', trig_always: 'always', trig_numeric: 'numeric',
+  reason_disabled: 'not enabled', reason_manual: 'manual: no chain in this run', reason_always: 'always', reason_numeric_ok: 'numeric criterion met', reason_numeric_no_bar: 'no rung-1 bar given, no chain', reason_numeric_rung1_not_below_bar: 'rung 1 not below the bar, no chain', reason_numeric_optimism_too_large: 'optimism not below the max, no chain', reason_from_run: 'started by hand from a saved run',
+  chain_ran: 'chain ran', beta_mode_fixed: 'fixed', beta_mode_star: 'max(β*,64)', stopped_early: 'stopped after {n} consecutive rejections',
+  btn_start_chain: 'Start the repair chain on this delivery (manual)', chain_started: 'chain job {id} submitted (see the Progress tab)', chain_needs_save: 'once the run is saved, the chain can be started from the History tab',
+  arm_tickets: 'Tickets + repair chain', arm_control: 'Tickets + equal-wall-clock extra tickets', chain_samples_gm: '{n} tickets + {j} hops ({a} accepted)', control_samples: '{b} original + {n} extra tickets', best_from_original: ' (the best is still an original ticket)', th_rung1_eta: 'Rung-1 η',
+  role_ticket: 'ticket', role_control: 'equal-wall-clock ticket', btn_chain: 'chain',
+  // dynamic
+  pixel: 'pixel {a} × {b} nm',
+  order_hint: 'descent 2N={twoN}; the top order ({lv}) needs nx ≥ {nx}, ny ≥ {ny}', order_bad: ' — the current grid does not satisfy this!',
+  cpu_prefix: 'CPU mode: expect far longer than the GPU estimate below.',
+  cost_chain: 'GPU estimate: starts {ns}×{steps} steps ≈ {total} s; each jump ≈ {jump} s (re-descent + gate), {jumps} jumps ≈ {chain} s{budget}; certification at 2N ≥ 4850 takes 60–75 s each',
+  cost_budget: ' ×2 (equal-budget restart control)',
+  cost_restart: 'GPU estimate: ≈ {per} s per step (extrapolated from (12,3) = 0.106 s with N^2.13 scaling), total descent ≈ {total} s{x2}; certification at 2N ≥ 4850 takes about 60–75 s each',
+  cost_x2: ' ×2 (with the TORCWA optimizer arm)',
+  rule_hint: 'Order rule (target order {m}): descent ({d}) · gate ({g}) · certification {ladder}', rule_clipped: ' — the current grid clips the rule; the full rule needs nx ≥ {nx}, ny ≥ {ny}',
+  rule_fail: 'Order rule failed: ', ladder_none: 'The current grid cannot hold any order above the descent order: increase nx/ny or lower the descent order', submit_fail: 'Submit failed: ',
+  queued: 'queued', th_job: 'Job', th_type: 'Type', th_status: 'Status', th_time: 'Elapsed', btn_cancel: 'Cancel', btn_view: 'View', btn_load: 'Load',
+  st_queued: 'queued', st_running: 'running', st_done: 'done', st_error: 'error', st_cancelled: 'cancelled', type_optimize: 'optimize', type_solve: 'solve',
+  c_status: 'Status', c_phase: 'Phase', c_step: 'Step', c_relaxed: 'Relaxed η / best binary@gate', ph_descent: 'descent', seed_word: 'seed',
+  c_chain_phase: 'chain · jump {j}/{n} (α={a})', c_cand: 'Candidate / incumbent @gate', c_accepts: 'Accepts',
+  c_rs_phase: 'equal-budget restarts · seed {seed} ({n} done)', c_budget: 'Budget',
+  ph_certify: 'certification ', ph_robust: 'CD-bias audit', ph_fields: 'field reconstruction', ph_torcwa: 'TORCWA forward comparison', ph_lum: 'Lumerical cross-check', ph_solve: 'solve',
+  role_ours: 'Ours', role_start: 'start restart', role_rs: 'equal-budget restart', role_torcwa: 'TORCWA',
+  lab_traj_mode: 'Show', traj_auto: 'auto (all when ≤ 4 tickets, else ◆ only)', traj_all: 'all', traj_current: 'current / delivered ticket only', traj_ckpt: 'all ◆ + thin line of the current ticket',
+  xz_re: 'Re({c})  x–z cut (wavefronts; incident |E| = 1; the dominant component follows the polarization)', lab_field_views: 'Field maps (optional)', fv_always: 'the Re(E) x–z cut is always drawn', fv_int_xz: '|E|² x–z cut', fv_phase_xz: 'phase x–z cut', fv_xy_out: '|E|² x–y plane (one wavelength beyond the exit)', fv_xy_layer: '|E|² x–y plane (mid-layer)', xz_phase: 'phase arg({c})  x–z cut', lab_xz_layer: 'layer band of the |E|² map', xzl_section: 'structure cross-section (black = feature)', xzl_field: 'field inside the layer', xy_layer: '|E|²  x–y plane inside the layer, z={z0} nm (white/black line = pattern outline)', fld_layer_label: 'pattern layer {d} nm',
+  lab_relaxed: ' (relaxed)', lab_bin: ' (binary@gate)', hover_relaxed: 'step %{x} · relaxed η=%{y:.4f}', hover_bin: 'step %{x} · binary@gate η=%{y:.4f}',
+  traj_title: 'Descent: relaxed value (thin line) vs binary@gate checkpoints (◆)', ax_step: 'step',
+  inc_name: 'incumbent (gate η)', hover_inc: 'jump %{x} · incumbent η=%{y:.4f}', cand_name: 'candidate (accepted ● / rejected ○)', accepted: 'accepted', rejected: 'rejected',
+  hover_cand: 'jump %{x} · candidate η=%{y:.4f} · %{text}', chain_title: 'Chain: candidate vs incumbent (gate-order η, {acc}/{n} accepted)', ax_jump: 'jump (0 = start)', ax_eta_gate: 'η@gate',
+  lottery: 'restart lottery', chain: 'chain', budget_pts: 'best checkpoint per seed (gate η)', hover_seed: '%{text} · η@gate=%{y:.4f}', chain_star: 'chain incumbent (gate η)',
+  hover_chain: 'chain · η@gate=%{y:.4f}', top_cert: 'top certification order ({lv}) η', hover_cert: '%{x} · certified η=%{y:.4f}',
+  budget_title: 'Equal-wall-clock control (budget {s} s): chain vs {n} restart tickets', value: 'value',
+  name_chain: 'chain delivery', name_ours: 'Ours', name_rs_best: 'equal-budget restart best', conv_title: 'η(target) vs truncation 2N (convergence of the delivered binary)',
+  ax_2n: 'truncation 2N (total Fourier orders)', ax_eta_t: 'η (target order)', lab_descent_order: 'descent order', lab_gate_order: 'gate order',
+  th_order: 'Order', th_deta: 'Δη vs previous', th_rel: 'Relative change',
+  verdict_conv: 'Relative change between the top two orders < 1%: converged; the reported value is the top order', verdict_not: 'Relative change between the top two orders ≥ 1%: not converged yet; extend the certification ladder (or raise the grid nx/ny)', verdict_one: 'Only one order; convergence cannot be judged',
+  lum_not_run: 'Lumerical cross-check not run: ', th_kvec: 'k-vectors', th_eta_tp: 'Target η (Tp)', th_tp: 'Total Tp', th_rp: 'Total Rp', th_dvs: '|Δ vs our top order|', th_time_s: 'Time s', th_poly: 'Polygons (solid+holes)',
+  lum_foot: 'Our top-order η = {eta}; Lumerical converges with k, and the highest k is its best estimate. The three engines (this FMM / TORCWA / Lumerical RCWA) are independent implementations.',
+  eta_top_txt: ', η @ top certification order = {eta}', pat_title: '{label} design', winner: '★ winner', pat_latent: 'latent ρ', pat_filtered: 'filtered density ({r} nm)', pat_binary: 'delivered binary pattern',
+  c_eta_target: 'Target-order η', c_T: 'Total transmission T', c_R: 'Total reflection R', c_res: 'Energy residual', bar_title: 'Transmitted power per propagating order (dark = target)',
+  th_trans: 'Transmitted η', th_refl: 'Reflected', evanescent: 'evanescent', xz_int: '|E|²  x–z cut (y={y0} nm; two periods; z<0 incident side, layer, z>h exit side)', xz_ph: 'phase arg(E)  x–z cut', xy_int: '|E|²  x–y plane (z={z0} nm)', xy_ph: 'phase arg(E)  x–y plane',
+  torcwa_not_run: 'TORCWA comparison not run: ', th_ours_eta: 'Ours η', th_torcwa_eta: 'TORCWA η', th_ours_s: 'Ours time s', th_torcwa_s: 'TORCWA time s', per_order_title: 'Per-order comparison @ ({lv})',
+  c_reported: 'Reported value: η @ certification order ({lv})', c_gate: 'Gate value @ ({lv})', c_drift: 'Gate→certification drift', c_proto: 'Protocol / origin', proto_chain: 'chain', proto_base: 'baseline', c_total: 'Total time',
+  partial_banner: '⚠ Partial result: the delivery and its certification completed; the equal-wall-clock control arm was cancelled and did not run. ',
+  th_item: 'Item', th_value: 'Value', r_start: 'Start', r_start_eta: 'Start gate η', r_inc_eta: 'Incumbent gate η (acceptance rule: {rule})', rule_nominal: 'nominal', rule_maximin: 'min{nominal, CD±}',
+  r_acc: 'Accepted / jumps', r_alpha: 'α rotation · re-descent', steps_at: '{n} steps @ β={b}', r_wall: 'Start wall / chain wall / total',
+  th_arm: 'Arm', th_budget_s: 'Budget s', th_samples: 'Samples', th_gate_eta: 'Gate η', th_cert_eta: 'Certified η @({lv})', th_note: 'Note',
+  arm_chain: 'Chain protocol', chain_samples: '{s} starts + {j} jumps ({a} accepted)', delivered: 'delivered', arm_lottery: 'Restart lottery', tickets: '{n} tickets',
+  best_w: 'best', median_w: 'median', worst_w: 'worst', best_seed: 'best seed {s}',
+  th_opt_engine: 'Optimizer engine', th_best_seed: 'Best seed', th_final_eta: 'Final η @ ({lv})', th_descent_s: 'Total descent time s', th_n_restarts: 'Restarts',
+  th_role: 'Role', th_engine: 'Engine', th_seed: 'Seed', th_final_relaxed: 'Final relaxed η', th_best_gate: 'Best binary@gate η', th_at_step: '@ step', th_wall: 'Time s',
+  role_chain_start: 'chain start', role_restart: 'restart', none_restarts: '(no restart records)', none: '(none)', not_run: '(not run)',
+  th_total_T: 'Total T', th_cd: 'CD bias (nm)', th_eta_top: 'η @ top certification order', e_threads: 'BLAS threads', e_total: 'Total time s',
+  th_run: 'Run', th_target: 'Target', th_best_eta: 'Best / target η', th_cert: 'Certified η',
+},
+};
+let LANG = 'en';
+try { LANG = localStorage.getItem('fmm_lang') || ((navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'); } catch (e) { /* no storage */ }
+if (!I18N[LANG]) LANG = 'en';
+function t(key, vars) {
+  let s = (I18N[LANG] && I18N[LANG][key]) ?? I18N.en[key] ?? key;
+  if (vars) Object.entries(vars).forEach(([k, v]) => { s = s.split('{' + k + '}').join(v); });
+  return s;
+}
+// backend messages are {code, zh, en} objects (older saved runs may hold plain strings)
+function pick(m) { return typeof m === 'string' ? m : (m ? (m[LANG] || m.en || m.zh || '') : ''); }
+function applyLang() {
+  document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en';
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n, el.dataset.i18n === 'opt_off_auto' ? { n: (state.env && state.env.offload_2n) || 3000 } : undefined); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll('header .lang button').forEach(b => b.classList.toggle('active', b.dataset.lang === LANG));
+  $('pat_hint').innerHTML = t('hint_patterns', { thr: state.thr });
+  if (state.env) showEnv(state.env); else $('envline').textContent = t('connecting');
+  updateHints();
+  refreshJobList();
+  refreshRuns();
+  if (state.current) renderAll(state.current);
+}
+document.querySelectorAll('header .lang button').forEach(b => b.addEventListener('click', () => {
+  LANG = b.dataset.lang;
+  try { localStorage.setItem('fmm_lang', LANG); } catch (e) { /* ignore */ }
+  applyLang();
+}));
+
+// ---------------------------------------------------------------- theme
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function baseLayout(extra) {
+  return Object.assign({
+    paper_bgcolor: cssVar('--surface-1'), plot_bgcolor: cssVar('--surface-1'),
+    font: { family: 'system-ui,-apple-system,"Segoe UI",sans-serif', size: 12, color: cssVar('--ink-2') },
+    margin: { l: 58, r: 16, t: 34, b: 44 },
+    xaxis: { gridcolor: cssVar('--grid'), zerolinecolor: cssVar('--axis'), linecolor: cssVar('--axis') },
+    yaxis: { gridcolor: cssVar('--grid'), zerolinecolor: cssVar('--axis'), linecolor: cssVar('--axis') },
+    hovermode: 'closest', showlegend: false,
+  }, extra || {});
+}
+function seqScale() {
+  return [[0, cssVar('--seq0')], [0.25, '#9ec5f4'], [0.5, '#5598e7'], [0.75, '#256abf'], [1, cssVar('--seq4')]];
+}
+function binScale() { return [[0, cssVar('--bin0')], [1, cssVar('--bin1')]]; }
+// field colormaps in the style of the Lumerical field monitors: jet for |E|^2, blue-white-red for real parts
+function jetScale() {
+  return [[0, '#00007f'], [0.11, '#0000ff'], [0.34, '#00ffff'], [0.5, '#7fff7f'], [0.66, '#ffff00'], [0.89, '#ff0000'], [1, '#7f0000']];
+}
+function bwrScale() { return [[0, '#0000ff'], [0.5, '#ffffff'], [1, '#ff0000']]; }
+// matplotlib RdBu_r (the s9_fields.py scale): blue -> white -> red
+function rdbuScale() {
+  return [[0, '#053061'], [0.1, '#2166ac'], [0.2, '#4393c3'], [0.3, '#92c5de'], [0.4, '#d1e5f0'], [0.5, '#f7f7f7'],
+    [0.6, '#fddbc7'], [0.7, '#f4a582'], [0.8, '#d6604d'], [0.9, '#b2182b'], [1, '#67001f']];
+}
+const PLOT_CFG = { displaylogo: false, responsive: true,
+  modeBarButtonsToRemove: ['select2d', 'lasso2d', 'autoScale2d'] };
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (state.current) renderAll(state.current);
+});
+
+// ---------------------------------------------------------------- form
+function parsePairs(text) {
+  return text.split(';').map(s => s.trim()).filter(Boolean)
+    .map(s => s.split(',').map(v => parseInt(v.trim(), 10)));
+}
+function parseNums(text) {
+  return text.split(',').map(s => s.trim()).filter(Boolean).map(Number);
+}
+function collectParams() {
+  const p = {
+    wavelength_nm: +$('wavelength_nm').value, theta_deg: +$('theta_deg').value,
+    phi_deg: +$('phi_deg').value, polarization: $('polarization').value,
+    jx_re: +$('jx_re').value, jx_im: +$('jx_im').value,
+    jy_re: +$('jy_re').value, jy_im: +$('jy_im').value,
+    n_incident: +$('n_incident').value, n_output: +$('n_output').value,
+    n_feature: +$('n_feature').value, n_background: +$('n_background').value,
+    thickness_nm: +$('thickness_nm').value,
+    lx_nm: +$('lx_nm').value, ly_nm: +$('ly_nm').value,
+    nx: parseInt($('nx').value, 10), ny: parseInt($('ny').value, 10),
+    level_descent: [parseInt($('mx').value, 10), parseInt($('my').value, 10)],
+    levels_certify: parsePairs($('levels_certify').value),
+    target: [parseInt($('tm').value, 10), parseInt($('tn').value, 10)],
+    filter_nm: +$('filter_nm').value, threshold: +$('threshold').value,
+    beta_ladder: [+$('beta_lo').value, +$('beta_hi').value],
+    symmetry: $('symmetry').value,
+    cd_bias_nm: parseNums($('cd_bias_nm').value),
+    steps: parseInt($('steps').value, 10),
+    seeds: parseNums($('seeds').value),
+    lr0: +$('lr0').value,
+    protocol: $('protocol').value,
+    level_gate: [parseInt($('gx').value, 10), parseInt($('gy').value, 10)],
+    // guarded mixed-order tickets (default protocol)
+    gm_beta0: +$('gm_beta0').value, gm_beta_end: +$('gm_beta_end').value,
+    gm_mix_k: parseInt($('gm_mix_k').value, 10), gm_mix_from_beta: +$('gm_mix_from_beta').value,
+    gm_guards: $('gm_guards').checked, gm_cadence: $('gm_cadence').checked, gm_rise: $('gm_rise').checked,
+    repair_enabled: $('repair_enabled').checked, repair_trigger: $('repair_trigger').value,
+    repair_bar: $('repair_bar').value === '' ? null : +$('repair_bar').value,
+    repair_optimism_max: +$('repair_optimism_max').value,
+    repair_beta_mode: $('repair_beta_mode').value, repair_beta_fixed: +$('repair_beta_fixed').value,
+    repair_hops: parseInt($('repair_hops').value, 10), repair_stop_after: parseInt($('repair_stop_after').value, 10),
+    repair_re_k: parseInt($('repair_re_k').value, 10),
+    // legacy chain protocol
+    ckpt_every: parseInt($('ckpt_every').value, 10),
+    chain_jumps: parseInt($('chain_jumps').value, 10),
+    chain_beta: +$('chain_beta').value,
+    accept_rule: $('accept_rule').value,
+    engine: $('engine').value,
+    compare_torcwa: $('compare_torcwa').checked,
+    compare_lumerical: $('compare_lumerical').checked,
+    lumerical_kvecs: parseNums($('lumerical_kvecs').value).map(v => Math.round(v)),
+    memory_efficient: $('memory_efficient').checked,
+    save_on_cpu: $('save_on_cpu').value,
+    field_zmax_nm: +$('field_zmax_nm').value, field_zin_nm: +$('field_zin_nm').value,
+    field_views: ['re_xz'].concat(['int_xz', 'phase_xz', 'xy_out', 'xy_layer'].filter(v => $('fv_' + v).checked)),
+    pattern_source: { kind: $('pattern_kind').value, seed: parseInt($('src_seed').value, 10),
+      fill: +$('src_fill').value, run_id: $('src_run').value },
+  };
+  // the shared chain settings come from whichever protocol block is visible
+  const legacy = p.protocol === 'legacy_chain';
+  p.chain_start = legacy ? { kind: $('chain_start_kind').value, run_id: $('chain_run').value } : null;
+  p.chain_noise_seed = parseInt((legacy ? $('lc_noise_seed') : $('chain_noise_seed')).value, 10);
+  p.chain_alphas = parseNums((legacy ? $('lc_alphas') : $('chain_alphas')).value);
+  p.chain_redescent_steps = parseInt((legacy ? $('lc_redescent_steps') : $('chain_redescent_steps')).value, 10);
+  p.compare_restart_budget = (legacy ? $('lc_budget') : $('compare_restart_budget')).checked;
+  return p;
+}
+function ckptCount(steps) {
+  const s = new Set([0, steps]);
+  for (let t = 0.25; t < 0.6 - 1e-9; t += 0.25) s.add(Math.round(t * steps));
+  for (let t = 0.6; t < 1 - 1e-9; t += 0.05) s.add(Math.round(t * steps));
+  for (let k = 0; k <= steps; k += 12) s.add(k);
+  return s.size;
+}
+function nTerms(l) { return (2 * l[0] + 1) * (2 * l[1] + 1); }
+function updateHints() {
+  const lx = +$('lx_nm').value, ly = +$('ly_nm').value;
+  const nx = +$('nx').value, ny = +$('ny').value;
+  const mx = +$('mx').value, my = +$('my').value;
+  $('pixel_hint').textContent = t('pixel', { a: (lx / nx).toFixed(1), b: (ly / ny).toFixed(1) });
+  const certs = parsePairs($('levels_certify').value);
+  const gx = +$('gx').value, gy = +$('gy').value;
+  const maxLv = certs.concat([[mx, my], [gx, gy]]).reduce((a, b) => nTerms(b) > nTerms(a) ? b : a, [mx, my]);
+  const need = [4 * maxLv[0] + 1, 4 * maxLv[1] + 1];
+  const ok = nx >= need[0] && ny >= need[1];
+  const twoN = 2 * nTerms([mx, my]);
+  $('order_hint').textContent = t('order_hint', { twoN, lv: maxLv, nx: need[0], ny: need[1] }) + (ok ? '' : t('order_bad'));
+  $('order_hint').className = ok ? 'hint' : 'hint warn';
+}
+['lx_nm','ly_nm','nx','ny','mx','my','gx','gy','levels_certify'].forEach(id => $(id).addEventListener('input', updateHints));
+function syncProtocolPanel() {
+  const proto = $('protocol').value;
+  $('gm_opts').hidden = proto !== 'guarded_mixed';
+  $('legacy_opts').hidden = proto !== 'legacy_chain';
+  $('repair_opts').hidden = !$('repair_enabled').checked;
+  $('repair_numeric_row').hidden = $('repair_trigger').value !== 'numeric';
+  $('repair_beta_fixed').disabled = $('repair_beta_mode').value !== 'fixed';
+  $('gm_cadence').disabled = false;
+  if ($('gm_rise').checked) $('gm_cadence').checked = true;
+}
+$('protocol').addEventListener('change', () => { syncProtocolPanel(); updateHints(); });
+['repair_enabled', 'repair_trigger', 'repair_beta_mode', 'gm_rise'].forEach(id => $(id).addEventListener('change', syncProtocolPanel));
+$('chain_start_kind').addEventListener('change', () => { $('chain_run_row').hidden = $('chain_start_kind').value !== 'run_best'; });
+syncProtocolPanel();
+$('btn_rule').addEventListener('click', async () => {
+  try {
+    const rule = await api('/api/order_rule', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(collectParams()) });
+    $('mx').value = rule.descent[0]; $('my').value = rule.descent[1];
+    $('gx').value = rule.gate[0]; $('gy').value = rule.gate[1];
+    $('levels_certify').value = rule.ladder.map(l => l.join(',')).join('; ');
+    $('rule_hint').textContent = t('rule_hint', { m: rule.m_eff, d: rule.unclipped.descent, g: rule.unclipped.gate,
+      ladder: rule.unclipped.ladder.map(l => '(' + l + ')').join(' → ') }) +
+      (rule.clipped ? t('rule_clipped', { nx: rule.grid_needed.nx, ny: rule.grid_needed.ny }) : '');
+    $('rule_hint').className = rule.clipped ? 'hint warn' : 'hint';
+    updateHints();
+  } catch (e) { $('msg').textContent = t('rule_fail') + e.message; }
+});
+// Auto ladder: keep the descent aspect Mx/My, raise My one at a time, stop at
+// the convolution limit of the current grid (nx >= 4Mx+1, ny >= 4My+1).
+$('btn_ladder').addEventListener('click', () => {
+  const nx = +$('nx').value, ny = +$('ny').value;
+  const mx = +$('gx').value, my = +$('gy').value;      // rungs sit above the gate order, with its aspect ratio
+  const maxMx = Math.floor((nx - 1) / 4), maxMy = Math.floor((ny - 1) / 4);
+  const ladder = [];
+  for (let k = my + 1; k <= maxMy; k++) {
+    const mxk = Math.round(mx * k / my);
+    if (mxk > maxMx) break;
+    ladder.push(`${mxk},${k}`);
+  }
+  if (!ladder.length) { $('msg').textContent = t('ladder_none'); return; }
+  $('levels_certify').value = ladder.join('; ');
+  $('msg').textContent = '';
+  updateHints();
+});
+$('polarization').addEventListener('change', () =>
+  $('jones_row').hidden = $('polarization').value !== 'custom');
+$('pattern_kind').addEventListener('change', () => {
+  const k = $('pattern_kind').value;
+  $('src_seed_row').hidden = k !== 'seed';
+  $('src_fill_row').hidden = k !== 'uniform';
+  $('src_run_row').hidden = k !== 'run_best';
+});
+
+// ---------------------------------------------------------------- API
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error || res.statusText);
+  return body;
+}
+async function submit(kind) {
+  $('msg').textContent = '';
+  try {
+    const body = await api('/api/jobs', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: kind, params: collectParams() }) });
+    state.activeJob = body.job_id;
+    switchTab('jobs');
+    startPolling();
+  } catch (e) { $('msg').textContent = t('submit_fail') + e.message; }
+}
+$('btn_optimize').addEventListener('click', () => submit('optimize'));
+window.startChainFrom = async runId => {
+  $('msg').textContent = '';
+  try {
+    const p = collectParams();
+    p.protocol = 'guarded_mixed';
+    p.chain_start = { kind: 'run_best', run_id: runId };
+    p.repair_enabled = true;
+    p.repair_trigger = 'always';
+    const body = await api('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'optimize', params: p }) });
+    state.activeJob = body.job_id;
+    $('msg').textContent = t('chain_started', { id: body.job_id });
+    switchTab('jobs');
+    startPolling();
+  } catch (e) { $('msg').textContent = t('submit_fail') + e.message; }
+};
+$('btn_solve').addEventListener('click', () => submit('solve'));
+
+function startPolling() {
+  if (state.pollTimer) clearInterval(state.pollTimer);
+  state.pollTimer = setInterval(pollActive, 1000);
+  pollActive();
+}
+async function pollActive() {
+  await refreshJobList();
+  if (!state.activeJob) return;
+  try {
+    const job = await api('/api/jobs/' + state.activeJob);
+    renderJobProgress(job);
+    if (job.status === 'done') {
+      clearInterval(state.pollTimer); state.pollTimer = null;
+      state.current = { params: job.params, result: job.result, trajectories: job.trajectories,
+        checkpoints: job.checkpoints, chain_jumps: job.chain_jumps, run_id: job.run_id };
+      renderAll(state.current);
+      refreshRuns();
+      switchTab(job.type === 'solve' ? 'fields' : 'summary');
+    } else if (job.status === 'error' || job.status === 'cancelled') {
+      clearInterval(state.pollTimer); state.pollTimer = null;
+      $('job_error').hidden = !job.error;
+      $('job_error').textContent = job.error || '';
+    }
+  } catch (e) { /* transient */ }
+}
+function statusLabel(s) { return `<span class="status-${s}">${t('st_' + s)}</span>`; }
+async function refreshJobList() {
+  try {
+    const body = await api('/api/jobs');
+    const rows = body.jobs.map(j => {
+      const dur = j.finished ? (j.finished - j.started).toFixed(1) + ' s'
+        : (j.started ? ((Date.now() / 1000) - j.started).toFixed(0) + ' s…' : t('queued'));
+      const cancel = (j.status === 'running' || j.status === 'queued')
+        ? `<button onclick="cancelJob('${j.id}')">${t('btn_cancel')}</button>` : '';
+      const view = j.status === 'done' ? `<a class="runlink" onclick="viewJob('${j.id}')">${t('btn_view')}</a>` : '';
+      return `<tr><td>${j.id}</td><td>${t('type_' + j.type)}</td>
+        <td>${statusLabel(j.status)}</td><td>${dur}</td><td>${view} ${cancel}</td></tr>`;
+    }).join('');
+    $('job_list').innerHTML = `<table class="data"><tr><th>${t('th_job')}</th><th>${t('th_type')}</th><th>${t('th_status')}</th><th>${t('th_time')}</th><th></th></tr>${rows}</table>`;
+  } catch (e) { /* transient */ }
+}
+window.cancelJob = async id => { await api(`/api/jobs/${id}/cancel`, { method: 'POST' }); };
+window.viewJob = async id => {
+  const job = await api('/api/jobs/' + id);
+  if (job.status !== 'done') return;
+  state.current = { params: job.params, result: job.result, trajectories: job.trajectories,
+    checkpoints: job.checkpoints, chain_jumps: job.chain_jumps, run_id: job.run_id };
+  renderAll(state.current);
+  switchTab(job.type === 'solve' ? 'fields' : 'summary');
+};
+
+function renderJobProgress(job) {
+  const pr = job.progress || {};
+  const cards = [];
+  cards.push(card(t('c_status'), statusLabel(job.status)));
+  if (pr.phase === 'descent') {
+    const who = `${roleLabel((pr.key || '').split(':')[0]) || t('ph_descent')} · ${t('seed_word')} ${pr.seed}`;
+    cards.push(card(t('c_phase'), who + (pr.n_tickets ? ` <small>${t('ticket_of', { i: pr.ticket, n: pr.n_tickets })}</small>` : '')));
+    cards.push(card(t('c_step'), `${pr.step}/${pr.steps}` + (pr.level ? ` <small>(${pr.level})${pr.high ? ' ' + t('high_mark') : ''}${pr.k ? ' · k=' + pr.k : ''}</small>` : '')));
+    cards.push(card(t('c_relaxed'), `${pr.eta != null ? pr.eta.toFixed(4) : '—'} <small>/ ${pr.eta_gate_best != null ? pr.eta_gate_best.toFixed(4) : '—'}</small>`));
+    if (pr.n_trigger != null) cards.push(card(t('c_guard'), `${pr.n_true_positive ?? 0} / ${pr.n_trigger ?? 0} <small>${pr.last_guard_action || ''}</small>`));
+  } else if (pr.phase === 'chain') {
+    cards.push(card(t('c_phase'), t('c_chain_phase', { j: pr.jump, n: pr.n_jumps, a: pr.alpha }) + (pr.re_steps ? ` <small>${t('re_step_of', { t: pr.re_step, n: pr.re_steps })}</small>` : '')));
+    cards.push(card(t('c_cand'), `${(+pr.score).toFixed(4)} <small>/ ${(+pr.incumbent).toFixed(4)}</small>`));
+    cards.push(card(t('c_accepts'), pr.accepts));
+  } else if (pr.phase === 'restart_arm') {
+    cards.push(card(t('c_phase'), t('c_rs_phase', { seed: pr.seed, n: pr.n_done })));
+    cards.push(card(t('c_budget'), `${pr.spent_s}/${pr.budget_s} s`));
+  } else if (pr.phase) {
+    cards.push(card(t('c_phase'), ({ certify: t('ph_certify') + JSON.stringify(pr.level || '') + (pr.tag ? ' · ' + pr.tag : ''),
+      robustness: t('ph_robust'), fields: t('ph_fields'), torcwa: t('ph_torcwa'),
+      lumerical: t('ph_lum'), solve: t('ph_solve') })[pr.phase] || pr.phase));
+  }
+  $('job_cards').innerHTML = cards.join('');
+  drawDescent(job.trajectories || {}, job.checkpoints || {}, pr.key || null);
+  drawChain(job.trajectories || {}, job.chain_jumps || []);
+  $('budget_chart').hidden = true;
+}
+function card(k, v) { return `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`; }
+
+// ---------------------------------------------------------------- charts
+const ENGINE_COLOR = { ours: '--s1', torcwa: '--s2' };
+const ROLE_COLOR = { ours: '--s1', start: '--s1', rs: '--ink-3', torcwa: '--s2', saved: '--s1' };
+function roleLabel(role) { return ({ ours: t('role_ticket'), start: t('role_start'), rs: t('role_rs'), torcwa: t('role_torcwa'), saved: t('role_ticket') })[role]; }
+function engineLabel(eng) { return ({ ours: t('role_ours'), torcwa: 'TORCWA' })[eng] || eng; }
+function parseKey(k) {
+  const i = k.indexOf(':');
+  return i < 0 ? { key: k, role: 'ours', seed: k } : { key: k, role: k.slice(0, i), seed: k.slice(i + 1) };
+}
+const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#8e44ad', '#d4a017', '#17becf', '#e377c2', '#7f7f7f', '#bcbd22', '#d62728', '#3b5998', '#ff9896'];
+let _lastDescent = null;
+function drawDescent(trajs, ckpts, focusKey) {
+  _lastDescent = { trajs, ckpts, focusKey };
+  const keys = Object.keys(trajs || {}).filter(k => !k.startsWith('chain:'));
+  if (!keys.length) { Plotly.purge('traj_chart'); $('traj_chart').hidden = true; $('traj_bar').hidden = true; return; }
+  $('traj_chart').hidden = false; $('traj_bar').hidden = false;
+  let mode = $('traj_mode').value;
+  if (mode === 'auto') mode = keys.length <= 4 ? 'all' : 'ckpt';
+  const focus = focusKey && keys.includes(focusKey) ? focusKey : keys[keys.length - 1];
+  const data = [];
+  keys.forEach((key, i) => {
+    const p = parseKey(key);
+    const col = PALETTE[i % PALETTE.length];
+    const dash = p.role === 'rs' ? 'dot' : (p.role === 'torcwa' ? 'dashdot' : 'solid');
+    const isFocus = key === focus;
+    if (mode === 'current' && !isFocus) return;
+    const lab = (roleLabel(p.role) || p.role) + ' ' + t('seed_word') + ' ' + p.seed;
+    if (mode !== 'ckpt' || isFocus) {
+      data.push({ x: trajs[key].map((_, j) => j + 1), y: trajs[key], mode: 'lines',
+        name: lab + t('lab_relaxed'), legendgroup: key, opacity: isFocus ? 0.9 : 0.4,
+        line: { width: isFocus ? 1.8 : 1.1, color: col, dash },
+        hovertemplate: t('hover_relaxed') + '<extra>' + lab + '</extra>' });
+    }
+    const c = ckpts && ckpts[key];
+    if (c && c.length) data.push({ x: c.map(v => v.step), y: c.map(v => v.eta_gate),
+      mode: 'lines+markers', name: lab + t('lab_bin'), legendgroup: key, opacity: isFocus ? 1 : 0.75,
+      line: { width: isFocus ? 2.4 : 1.5, color: col, dash },
+      marker: { size: isFocus ? 9 : 7, symbol: 'diamond', color: col, line: { width: 1, color: cssVar('--surface-1') } },
+      hovertemplate: t('hover_bin') + '<extra>' + lab + '</extra>' });
+  });
+  const layout = baseLayout({ title: { text: t('traj_title'), font: { size: 13 } },
+    showlegend: keys.length <= 6 || mode === 'current', legend: { orientation: 'h', y: -0.25, font: { size: 10 } } });
+  layout.xaxis.title = { text: t('ax_step') }; layout.yaxis.title = { text: 'η' };
+  Plotly.react('traj_chart', data, layout, PLOT_CFG);
+}
+$('xz_layer_mode').addEventListener('change', () => { if (state.current) renderFields(state.current.result, state.current.params || {}); });
+$('traj_mode').addEventListener('change', () => { if (_lastDescent) drawDescent(_lastDescent.trajs, _lastDescent.ckpts, _lastDescent.focusKey); });
+function drawChain(trajs, jumps) {
+  const inc = trajs && trajs['chain:incumbent'];
+  if (!inc || inc.length < 1) { Plotly.purge('chain_chart'); $('chain_chart').hidden = true; return; }
+  $('chain_chart').hidden = false;
+  const cand = trajs['chain:candidate'] || [];
+  const js = jumps || [];
+  const accepted = js.map(j => j.accepted);
+  const data = [
+    { x: inc.map((_, i) => i), y: inc, mode: 'lines', name: t('inc_name'),
+      line: { shape: 'hv', width: 2.6, color: cssVar('--s1') },
+      hovertemplate: t('hover_inc') + '<extra></extra>' },
+    { x: cand.map((_, i) => i).slice(1), y: cand.slice(1), mode: 'markers', name: t('cand_name'),
+      marker: { size: 8, color: accepted.map(a => a ? cssVar('--s1') : cssVar('--surface-1')),
+        line: { width: 1.5, color: cssVar('--ink-3') } },
+      text: js.map(j => 'α=' + j.alpha + ' ' + (j.accepted ? t('accepted') : t('rejected'))),
+      hovertemplate: t('hover_cand') + '<extra></extra>' },
+  ];
+  const n = js.length, acc = accepted.filter(Boolean).length;
+  const layout = baseLayout({ title: { text: t('chain_title', { acc, n }), font: { size: 13 } },
+    showlegend: true, legend: { orientation: 'h', y: -0.25, font: { size: 10 } } });
+  layout.xaxis.title = { text: t('ax_jump') }; layout.yaxis.title = { text: t('ax_eta_gate') };
+  Plotly.react('chain_chart', data, layout, PLOT_CFG);
+}
+function drawBudget(r) {
+  const bc = r && r.budget_compare, arm = r && r.restart_arm;
+  if (!bc || !arm) { Plotly.purge('budget_chart'); $('budget_chart').hidden = true; return; }
+  $('budget_chart').hidden = false;
+  const runs = arm.runs || [];
+  const data = [
+    { x: runs.map(() => t('lottery')), y: runs.map(x => x.eta_gate_best), mode: 'markers',
+      name: t('budget_pts'), marker: { size: 9, color: cssVar('--ink-3') },
+      text: runs.map(x => t('seed_word') + ' ' + x.seed), hovertemplate: t('hover_seed') + '<extra></extra>' },
+    { x: [t('chain')], y: [bc.chain.eta_gate], mode: 'markers', name: t('chain_star'),
+      marker: { size: 15, symbol: 'star', color: cssVar('--s1') },
+      hovertemplate: t('hover_chain') + '<extra></extra>' },
+    { x: [t('chain'), t('lottery')], y: [bc.chain.eta_top, bc.restart.eta_top], mode: 'markers',
+      name: t('top_cert', { lv: bc.ladder_top }), marker: { size: 12, symbol: 'diamond', color: cssVar('--s2') },
+      hovertemplate: t('hover_cert') + '<extra></extra>' },
+  ];
+  const layout = baseLayout({ title: { text: t('budget_title', { s: bc.chain.wall_s.toFixed(0), n: arm.n }), font: { size: 13 } },
+    showlegend: true, legend: { orientation: 'h', y: -0.25, font: { size: 10 } } });
+  layout.yaxis.title = { text: 'η' };
+  Plotly.react('budget_chart', data, layout, PLOT_CFG);
+}
+function heat(div, z, x, y, title, colorscale, opts) {
+  opts = opts || {};
+  const layout = baseLayout({ title: { text: title, font: { size: 13 } } });
+  layout.xaxis.title = { text: 'x (nm)' }; layout.yaxis.title = { text: opts.ylab || 'y (nm)' };
+  layout.yaxis.scaleanchor = opts.equal ? 'x' : undefined;
+  if (opts.shapes) layout.shapes = opts.shapes;
+  if (opts.annotations) layout.annotations = opts.annotations;
+  const traces = [{ z, x, y, type: 'heatmap', colorscale,
+    zsmooth: false, colorbar: { thickness: 10, outlinewidth: 0,
+      tickfont: { size: 10, color: cssVar('--ink-3') } },
+    zmin: opts.zmin, zmax: opts.zmax, zmid: opts.zmid,
+    hovertemplate: 'x=%{x:.0f} ' + (opts.ylab ? (opts.ylab[0] + '=%{y:.0f}') : 'y=%{y:.0f}') + ' ' + t('value') + '=%{z:.3f}<extra></extra>' }];
+  if (opts.extraTraces) traces.push(...opts.extraTraces);
+  Plotly.react(div, traces, layout, PLOT_CFG);
+}
+function percentile(arr2d, q) {
+  const flat = [];
+  arr2d.forEach(row => row.forEach(v => { if (v != null && Number.isFinite(v)) flat.push(v); }));
+  flat.sort((a, b) => a - b);
+  return flat.length ? flat[Math.min(flat.length - 1, Math.floor(q * flat.length))] : 1;
+}
+function axisNm(n, total) { return Array.from({ length: n }, (_, i) => i * total / n); }
+
+// ---------------------------------------------------------------- render
+function renderAll(cur) {
+  const r = cur.result; if (!r) return;
+  const p = cur.params || {};
+  // trajectories + best highlight
+  const trajs = cur.trajectories && Object.keys(cur.trajectories).length ? cur.trajectories
+    : Object.fromEntries((r.runs || []).map(x => [(x.role === 'start' ? 'start' : (x.engine || 'ours')) + ':' + x.seed, x.trajectory]));
+  const ckpts = cur.checkpoints && Object.keys(cur.checkpoints).length ? cur.checkpoints
+    : Object.fromEntries((r.runs || []).map(x => [(x.role === 'start' ? 'start' : (x.engine || 'ours')) + ':' + x.seed, x.checkpoints || []]));
+  drawDescent(trajs, ckpts, r.selection ? r.selection.winner_key : (r.best && r.best.seed != null ? 'ours:' + r.best.seed : null));
+  drawChain(trajs, cur.chain_jumps || (r.chain ? r.chain.jumps : []));
+  drawBudget(r);
+  renderPatterns(r, p);
+  renderFields(r, p);
+  renderConvergence(r, p);
+  renderTorcwa(r, p);
+  renderLumerical(r, p);
+  renderSummary(r, p, cur.run_id);
+}
+function protoLabel(proto) {
+  return proto === 'guarded_mixed' ? t('proto_gm') : (proto === 'restart' ? t('proto_base') : (proto === 'legacy_chain' || proto === 'chain' ? t('proto_legacy') : proto));
+}
+function renderConvergence(r, p) {
+  const conv = r.convergence || (r.opt_compare && r.opt_compare.length
+    ? r.opt_compare[0].convergence : null) || r.certification || null;
+  if (!conv || conv.length < 1) { Plotly.purge('conv_chart'); $('conv_table').innerHTML = ''; return; }
+  // series: per optimizer engine (baseline head-to-head), or delivered ladder
+  // (+ the equal-budget restart arm's best, when present)
+  let series;
+  if (r.opt_compare && r.opt_compare.length) {
+    series = r.opt_compare.map(c => ({ name: roleLabel(c.engine) || c.engine,
+      conv: c.convergence, color: ROLE_COLOR[c.engine] || '--s1' }));
+  } else {
+    series = [{ name: (r.protocol === 'chain' || r.protocol === 'legacy_chain') ? t('name_chain') : t('name_ours'), conv, color: '--s1' }];
+    if (r.budget_compare && r.budget_compare.restart && r.budget_compare.restart.convergence)
+      series.push({ name: t('name_rs_best'), conv: r.budget_compare.restart.convergence, color: '--ink-3' });
+  }
+  const data = series.map(s => ({
+    x: s.conv.map(c => c.two_n), y: s.conv.map(c => c.eta),
+    text: s.conv.map(c => `(${c.level})`),
+    mode: 'lines+markers', name: s.name,
+    line: { width: 2, color: cssVar(s.color) }, marker: { size: 8 },
+    hovertemplate: '%{text} · 2N=%{x} · η=%{y:.4f}<extra>' + s.name + '</extra>',
+  }));
+  const layout = baseLayout({ title: { text: t('conv_title'), font: { size: 13 } },
+    showlegend: series.length > 1, legend: { orientation: 'h', y: -0.28 } });
+  layout.xaxis.title = { text: t('ax_2n') };
+  layout.yaxis.title = { text: t('ax_eta_t') };
+  // mark the descent order so "descent -> certification drift" is readable
+  const ld = r.level_descent || (p && p.level_descent);
+  const lg = r.level_gate;
+  layout.shapes = []; layout.annotations = [];
+  [[ld, t('lab_descent_order')], [lg, t('lab_gate_order')]].forEach(([lv, lab]) => {
+    if (!lv) return;
+    const twoN = 2 * nTerms(lv);
+    layout.shapes.push({ type: 'line', x0: twoN, x1: twoN, y0: 0, y1: 1, yref: 'paper',
+      line: { color: cssVar('--ink-3'), width: 1, dash: 'dash' } });
+    layout.annotations.push({ x: twoN, y: 1, yref: 'paper', text: `${lab} (${lv})`,
+      showarrow: false, yanchor: 'bottom', font: { size: 11, color: cssVar('--ink-3') } });
+  });
+  Plotly.react('conv_chart', data, layout, PLOT_CFG);
+  // numeric convergence table: eta, step-to-step change, relative change
+  const blocks = series.map(s => {
+    const rows = s.conv.map((c, i) => {
+      const prev = i > 0 ? s.conv[i - 1].eta : null;
+      const d = prev != null ? c.eta - prev : null;
+      return [`(${c.level})`, c.two_n, c.eta.toFixed(5),
+        d != null ? (d >= 0 ? '+' : '') + d.toFixed(5) : '—',
+        d != null && prev ? ((100 * d / prev).toFixed(2) + '%') : '—'];
+    });
+    const last = s.conv[s.conv.length - 1], prev = s.conv[s.conv.length - 2];
+    const verdict = prev ? (Math.abs(last.eta - prev.eta) / Math.max(Math.abs(prev.eta), 1e-12) < 0.01
+      ? t('verdict_conv') : t('verdict_not')) : t('verdict_one');
+    return (series.length > 1 ? `<h4 style="margin:10px 0 2px">${s.name}</h4>` : '') +
+      tableHTML([t('th_order'), '2N', 'η', t('th_deta'), t('th_rel')], rows) +
+      `<p class="hint">${verdict}</p>`;
+  });
+  $('conv_table').innerHTML = blocks.join('');
+}
+function renderLumerical(r, p) {
+  const l = r.lumerical;
+  if (!l || !l.available) {
+    $('lumerical_status').textContent = t('lum_not_run') + pick(l && l.error);
+    $('lumerical_table').innerHTML = ''; return;
+  }
+  $('lumerical_status').textContent = pick(l.note);
+  const ourTop = (r.certification && r.certification.length)
+    ? r.certification[r.certification.length - 1] : null;
+  const ourEta = ourTop ? ourTop.eta : (r.eta_target != null ? r.eta_target : null);
+  const rows = l.rows.map(row => [`k=${row.kvec}`, row.eta_target.toFixed(5),
+    row.Tp_total.toFixed(4), row.Rp_total.toFixed(4),
+    ourEta != null ? Math.abs(row.eta_target - ourEta).toExponential(1) : '—',
+    row.s.toFixed(1), `${row.n_polygons[0]}+${row.n_polygons[1]}`]);
+  $('lumerical_table').innerHTML = tableHTML(
+    [t('th_kvec'), t('th_eta_tp'), t('th_tp'), t('th_rp'), t('th_dvs'), t('th_time_s'), t('th_poly')], rows)
+    + `<p class="hint">${t('lum_foot', { eta: ourEta != null ? (+ourEta).toFixed(5) : '—' })}</p>`;
+}
+function renderPatterns(r, p) {
+  state.thr = p.threshold != null ? p.threshold : 0.5;
+  $('pat_hint').innerHTML = t('hint_patterns', { thr: state.thr });
+  // one row per optimizer engine when available; else the single pattern set
+  const sets = r.patterns_by_engine
+    ? Object.entries(r.patterns_by_engine).map(([eng, pat]) => ({ eng, pat }))
+    : (r.patterns ? [{ eng: 'ours', pat: r.patterns }] : []);
+  const box = $('patterns_container');
+  box.innerHTML = sets.map(({ eng }) => {
+    const id = 'pat_' + eng;
+    return `<div class="patrow" data-eng="${eng}">
+      <h3 id="${id}_title"></h3>
+      <div class="chartrow">
+        <div class="chart" id="${id}_latent" style="height:280px"></div>
+        <div class="chart" id="${id}_filtered" style="height:280px"></div>
+      </div>
+      <div class="chart" id="${id}_binary" style="height:300px"></div>
+    </div>`;
+  }).join('');
+  sets.forEach(({ eng, pat }) => {
+    const id = 'pat_' + eng;
+    const isWinner = r.best && r.best.engine === eng;
+    const label = engineLabel(eng);
+    const extra = pat.seed != null ? `${t('seed_word')} ${pat.seed}` : '';
+    const etaTxt = pat.eta_top != null ? t('eta_top_txt', { eta: (+pat.eta_top).toFixed(4) }) : '';
+    $(id + '_title').innerHTML = t('pat_title', { label }) + (extra ? ' (' + extra + etaTxt + ')' : '') +
+      (isWinner && sets.length > 1 ? ` <span style="color:var(--s1)">${t('winner')}</span>` : '');
+    const ny = pat.binary.length, nx = pat.binary[0].length;
+    const x = axisNm(nx, p.lx_nm || 2400), y = axisNm(ny, p.ly_nm || 700);
+    heat(id + '_latent', pat.latent, x, y, label + ' · ' + t('pat_latent'), seqScale(), { zmin: 0, zmax: 1, equal: true });
+    heat(id + '_filtered', pat.filtered, x, y, label + ' · ' + t('pat_filtered', { r: p.filter_nm || 60 }), seqScale(), { zmin: 0, zmax: 1, equal: true });
+    heat(id + '_binary', pat.binary, x, y, label + ' · ' + t('pat_binary'), binScale(), { zmin: 0, zmax: 1, equal: true });
+  });
+}
+function renderFields(r, p) {
+  const o = r.orders; if (!o) return;
+  const cards = [];
+  if (r.kind === 'solve') cards.push(card(t('c_eta_target'), r.eta_target.toFixed(4)));
+  cards.push(card(t('c_T'), o.total_T.toFixed(4)));
+  cards.push(card(t('c_R'), o.total_R.toFixed(4)));
+  cards.push(card(t('c_res'), o.energy_residual.toExponential(1)));
+  $('field_cards').innerHTML = cards.join('');
+  const prop = o.rows.filter(x => x.propagating);
+  Plotly.react('orders_bar', [{
+    x: prop.map(x => `(${x.m},${x.n})`), y: prop.map(x => x.power_t), type: 'bar',
+    marker: { color: prop.map(x => x.is_target ? cssVar('--seq4') : cssVar('--s1')),
+      line: { width: 0 } },
+    hovertemplate: '(%{x}) η=%{y:.4f}<extra></extra>',
+  }], (() => { const l = baseLayout({ title: { text: t('bar_title'), font: { size: 13 } },
+    bargap: 0.35 }); l.yaxis.title = { text: 'η' }; return l; })(), PLOT_CFG);
+  $('orders_table').innerHTML = tableHTML(
+    ['(m,n)', 'kx/k0', 'ky/k0', 'kz/k0', t('th_trans'), t('th_refl'), '|t|', 'arg t (°)', ''],
+    o.rows.map(x => [`(${x.m},${x.n})`, x.kx.toFixed(4), x.ky.toFixed(4), x.kz_out.toFixed(4),
+      x.propagating ? x.power_t.toFixed(5) : '—', x.propagating ? x.power_r.toFixed(5) : '—',
+      x.abs_t.toFixed(5), x.phase_t_deg.toFixed(1), x.propagating ? '' : t('evanescent')]),
+    o.rows.map(x => x.is_target));
+  const f = r.fields; if (!f) return;
+  $('fields_note').textContent = pick(f.note);
+  const show = (id, on) => { const el = $(id); el.hidden = !on; if (!on) Plotly.purge(id); };
+  if (!f.xz.re_dom) {          // runs saved before the layer-interior reconstruction
+    show('field_xz_re', false); show('xz_bar', false);
+    show('field_xz_int', true); heat('field_xz_int', f.xz.intensity, f.xz.x_nm, f.xz.z_nm, t('xz_int', { y0: f.xz.y0_nm }), rdbuScale(), { ylab: 'z (nm)' });
+    show('field_xz_phase', true); heat('field_xz_phase', f.xz.phase, f.xz.x_nm, f.xz.z_nm, t('xz_ph'), bwrScale(), { ylab: 'z (nm)', zmin: -Math.PI, zmax: Math.PI });
+    show('field_xy_int', true); heat('field_xy_int', f.xy.intensity, f.xy.x_nm, f.xy.y_nm, t('xy_int', { z0: f.xy.z0_nm }), rdbuScale(), { equal: true });
+    show('field_xy_ph', true); heat('field_xy_ph', f.xy.phase, f.xy.x_nm, f.xy.y_nm, t('xy_ph'), bwrScale(), { equal: true, zmin: -Math.PI, zmax: Math.PI });
+    return;
+  }
+  const [z0i, zh] = f.xz.interfaces_nm;
+  const xmax = f.xz.x_nm[f.xz.x_nm.length - 1];
+  const outline = cssVar('--ink-1');
+  const runs = f.xz.material_runs_nm || [];
+  // outlines drawn twice (white casing under a dark line) so they read on every colour
+  const outlineShapes = [
+    { type: 'line', x0: 0, x1: xmax, y0: z0i, y1: z0i, line: { color: '#ffffff', width: 2.2 } },
+    { type: 'line', x0: 0, x1: xmax, y0: zh, y1: zh, line: { color: '#ffffff', width: 2.2 } },
+    { type: 'line', x0: 0, x1: xmax, y0: z0i, y1: z0i, line: { color: '#111111', width: 0.9 } },
+    { type: 'line', x0: 0, x1: xmax, y0: zh, y1: zh, line: { color: '#111111', width: 0.9 } },
+  ].concat(runs.map(([a, b]) => ({ type: 'rect', x0: a, x1: b, y0: z0i, y1: zh, line: { color: '#ffffff', width: 2.2 }, fillcolor: 'rgba(0,0,0,0)' })))
+   .concat(runs.map(([a, b]) => ({ type: 'rect', x0: a, x1: b, y0: z0i, y1: zh, line: { color: '#111111', width: 0.9 }, fillcolor: 'rgba(0,0,0,0)' })));
+  // |E|^2 map: the layer band as the structure's cross-section (black = feature index), scale from the half spaces
+  const sectionShapes = [
+    { type: 'rect', x0: 0, x1: xmax, y0: z0i, y1: zh, line: { width: 0 }, fillcolor: '#e8e8e8' },
+  ].concat(runs.map(([a, b]) => ({ type: 'rect', x0: a, x1: b, y0: z0i, y1: zh, line: { width: 0 }, fillcolor: '#111111' })),
+    [{ type: 'line', x0: 0, x1: xmax, y0: z0i, y1: z0i, line: { color: '#555555', width: 0.8 } },
+     { type: 'line', x0: 0, x1: xmax, y0: zh, y1: zh, line: { color: '#555555', width: 0.8 } }]);
+  const shapes = outlineShapes;
+  const annotations = [];
+  if (f.target) {
+    const th = f.target.angle_deg * Math.PI / 180, L = 0.35 * (f.xz.z_nm[f.xz.z_nm.length - 1] - zh);
+    const x0 = 0.72 * xmax, y0 = zh + 0.25 * (f.xz.z_nm[f.xz.z_nm.length - 1] - zh);
+    annotations.push({ x: x0 + f.target.sign_x * L * Math.sin(th), y: y0 + L * Math.cos(th), ax: x0, ay: y0,
+      xref: 'x', yref: 'y', axref: 'x', ayref: 'y', showarrow: true, arrowhead: 2, arrowwidth: 1.6, arrowcolor: outline,
+      text: '(' + f.target.order + ') ' + f.target.angle_deg.toFixed(1) + '°', font: { size: 11, color: outline }, xanchor: 'left' });
+  }
+  annotations.push({ x: 0.01 * xmax, y: zh, xref: 'x', yref: 'y', text: t('fld_layer_label', { d: (zh - z0i).toFixed(0) }),
+    showarrow: false, xanchor: 'left', yanchor: 'bottom', font: { size: 10, color: outline } });
+  // Re(E_dominant): always
+  show('field_xz_re', true);
+  const lim = percentile(f.xz.re_dom.map(row => row.map(Math.abs)), 0.99);
+  heat('field_xz_re', f.xz.re_dom, f.xz.x_nm, f.xz.z_nm,
+    t('xz_re', { c: f.xz.dominant }), rdbuScale(), { ylab: 'z (nm)', zmin: -lim, zmax: lim, zmid: 0, shapes, annotations });
+  // optional maps
+  const hasInt = !!f.xz.intensity;
+  show('xz_bar', hasInt); show('field_xz_int', hasInt);
+  if (hasInt) {
+    const sectionMode = $('xz_layer_mode').value === 'section';
+    const inLayer = f.xz.z_nm.map(z => z >= z0i && z < zh);
+    const intensityMasked = sectionMode ? f.xz.intensity.map((row, i) => inLayer[i] ? row.map(() => null) : row) : f.xz.intensity;
+    heat('field_xz_int', intensityMasked, f.xz.x_nm, f.xz.z_nm,
+      t('xz_int', { y0: f.xz.y0_nm }), rdbuScale(), { ylab: 'z (nm)', zmin: 0, zmax: percentile(intensityMasked, 0.99),
+        shapes: sectionMode ? sectionShapes : shapes, annotations });
+  }
+  const hasPhase = !!f.xz.phase;
+  show('field_xz_phase', hasPhase);
+  if (hasPhase) heat('field_xz_phase', f.xz.phase, f.xz.x_nm, f.xz.z_nm,
+    t('xz_phase', { c: f.xz.dominant }), rdbuScale(), { ylab: 'z (nm)', zmin: -Math.PI, zmax: Math.PI, zmid: 0, shapes, annotations });
+  show('field_xy_int', !!f.xy);
+  if (f.xy) heat('field_xy_int', f.xy.intensity, f.xy.x_nm, f.xy.y_nm,
+    t('xy_int', { z0: f.xy.z0_nm }), rdbuScale(), { equal: true, zmin: 0, zmax: percentile(f.xy.intensity, 0.995) });
+  show('field_xy_ph', !!f.xy_layer);
+  if (f.xy_layer) {
+    const pat = r.patterns && r.patterns.binary;
+    const pat2 = pat ? pat.map(row => row.concat(row)) : null;            // two periods in x, like the field maps
+    const extra = pat2 ? [{ z: pat2, x: axisNm(pat2[0].length, 2 * (p.lx_nm || 2400)), y: axisNm(pat2.length, p.ly_nm || 700), type: 'contour',
+      contours: { start: 0.5, end: 0.5, size: 1, coloring: 'none' }, line: { color: '#ffffff', width: 2.4 },
+      showscale: false, hoverinfo: 'skip', showlegend: false },
+      { z: pat2, x: axisNm(pat2[0].length, 2 * (p.lx_nm || 2400)), y: axisNm(pat2.length, p.ly_nm || 700), type: 'contour',
+      contours: { start: 0.5, end: 0.5, size: 1, coloring: 'none' }, line: { color: '#111111', width: 1.0 },
+      showscale: false, hoverinfo: 'skip', showlegend: false }] : [];
+    heat('field_xy_ph', f.xy_layer.intensity, f.xy_layer.x_nm, f.xy_layer.y_nm,
+      t('xy_layer', { z0: f.xy_layer.z0_nm }), rdbuScale(), { equal: true, zmin: 0, zmax: percentile(f.xy_layer.intensity, 0.97), extraTraces: extra });
+  }
+}
+function renderTorcwa(r, p) {
+  const tw = r.torcwa;
+  if (!tw || !tw.available) {
+    $('torcwa_status').textContent = t('torcwa_not_run') + pick(tw && tw.error);
+    $('torcwa_table').innerHTML = ''; Plotly.purge('torcwa_bar'); return;
+  }
+  $('torcwa_status').textContent = pick(tw.note);
+  const ourLadder = r.convergence || r.certification || [];
+  const ours = ourLadder.map(c => ({ level: c.level, eta: c.eta, s: c.s }));
+  const rows = tw.rows.map(row => {
+    const mine = ours.find(o => String(o.level) === String(row.level));
+    return [`(${row.level})`, mine ? mine.eta.toFixed(5) : '—', row.eta_target.toFixed(5),
+      mine && mine.eta != null ? Math.abs(mine.eta - row.eta_target).toExponential(1) : '—',
+      mine && mine.s != null ? mine.s.toFixed(1) : '—', row.s.toFixed(1)];
+  });
+  $('torcwa_table').innerHTML = tableHTML(
+    [t('th_order'), t('th_ours_eta'), t('th_torcwa_eta'), '|Δη|', t('th_ours_s'), t('th_torcwa_s')], rows);
+  const last = tw.rows[tw.rows.length - 1];
+  if (last && last.per_order && r.orders) {
+    const oursMap = Object.fromEntries(r.orders.rows.filter(x => x.propagating)
+      .map(x => [`${x.m},${x.n}`, x.power_t]));
+    const labels = last.per_order.map(x => `(${x.m},${x.n})`);
+    Plotly.react('torcwa_bar', [
+      { x: labels, y: last.per_order.map(x => oursMap[`${x.m},${x.n}`] ?? null),
+        name: t('role_ours'), type: 'bar', marker: { color: cssVar('--s1') } },
+      { x: labels, y: last.per_order.map(x => x.power_t),
+        name: 'TORCWA', type: 'bar', marker: { color: cssVar('--s2') } },
+    ], (() => { const l = baseLayout({ title: { text: t('per_order_title', { lv: last.level }), font: { size: 13 } },
+      barmode: 'group', bargap: 0.3, showlegend: true, legend: { orientation: 'h', y: -0.25 } });
+      l.yaxis.title = { text: 'η' }; return l; })(), PLOT_CFG);
+  } else { Plotly.purge('torcwa_bar'); }
+}
+function fx(v, d) { return v == null || Number.isNaN(+v) ? '—' : (+v).toFixed(d == null ? 4 : d); }
+function sg(v, d) { return v == null || Number.isNaN(+v) ? '—' : ((+v >= 0 ? '+' : '') + (+v).toFixed(d == null ? 4 : d)); }
+function renderSummary(r, p, runId) {
+  const cards = [];
+  const isGM = r.protocol === 'guarded_mixed';
+  if (r.kind === 'optimize') {
+    const top = (r.certification || [])[Math.max((r.certification || []).length - 1, 0)];
+    if (top) cards.push(card(t('c_reported', { lv: top.level }), top.eta.toFixed(4)));
+    if (isGM && r.best && r.best.eta_rung1 != null && String(r.best.level_rung1) !== String(top && top.level))
+      cards.push(card(t('c_rung1', { lv: r.best.level_rung1 }), fx(r.best.eta_rung1)));
+    if (r.best && r.best.eta_gate != null) {
+      cards.push(card(t('c_gate', { lv: r.level_gate }), r.best.eta_gate.toFixed(4)));
+      const d = r.best.drift_gate_to_top;
+      cards.push(card(t('c_drift'), `<span style="color:${Math.abs(d) < 0.01 * Math.max(r.best.eta_gate, 1e-9) ? 'var(--good)' : 'var(--critical)'}">${(d >= 0 ? '+' : '') + d.toFixed(4)}</span> <small>${(100 * d / Math.max(r.best.eta_gate, 1e-9)).toFixed(1)}%</small>`));
+    }
+    if (isGM && r.best && r.best.gate_optimism != null) cards.push(card(t('c_optimism'), sg(r.best.gate_optimism)));
+    const origin = isGM ? pick(r.best && r.best.origin_msg)
+      : (r.best && r.best.origin === 'chain' ? (r.chain ? pick(r.chain.origin) : '') : (t('seed_word') + ' ' + (r.best ? r.best.seed : '—')));
+    cards.push(card(t('c_proto'), `${protoLabel(r.protocol)} <small>${origin}</small>`));
+  } else if (r.eta_target != null) {
+    cards.push(card(t('c_eta_target'), r.eta_target.toFixed(4)));
+  }
+  cards.push(card(t('c_total'), (r.timing.total_s || 0).toFixed(1) + ' s'));
+  $('summary_cards').innerHTML = cards.join('');
+  const warns = (r.warnings || []).map(pick);
+  if (r.torcwa_opt_reason) warns.push(pick(r.torcwa_opt_reason));
+  $('warn_block').innerHTML = (r.partial ? t('partial_banner') : '')
+    + (warns.length ? '⚠ ' + warns.join('; ') : '');
+  // repair block (guarded mixed-order protocol)
+  if (isGM) {
+    $('repair_block').hidden = false;
+    const d = r.repair_decision || {}, rep = r.repair;
+    const rows = [[t('r_trigger'), t('trig_' + (d.trigger || 'manual'))],
+      [t('r_decision'), t('reason_' + (d.reason || 'disabled')) + (d.triggered ? ' → ' + t('chain_ran') : '')],
+      [t('r_criteria'), `${fx(d.eta_rung1)} / ${d.bar != null ? fx(d.bar) : '—'} · ${sg(d.gate_optimism)} / ${fx(d.optimism_max)}`]];
+    if (rep) {
+      rows.push([t('r_beta_re'), `${rep.beta_re} <small>(${t('beta_mode_' + (rep.beta_mode || 'fixed'))})</small>`]);
+      rows.push([t('r_hops'), `${rep.hops_run}/${rep.hops} · ${rep.n_accept} · ${rep.n_false_accept}${rep.stopped_early ? ' <small>' + t('stopped_early', { n: rep.stop_after }) + '</small>' : ''}`]);
+      rows.push([t('r_gain'), `${fx(rep.parent_eta_rung1)} → ${fx(rep.final_eta_rung1)} <small>(${sg(rep.gain_rung1)})</small>`]);
+      rows.push([t('r_chain_wall'), (+rep.wall_s).toFixed(0)]);
+    }
+    $('repair_table').innerHTML = tableHTML([t('th_item'), t('th_value')], rows);
+    if (!rep && runId) {
+      $('repair_action').innerHTML = `<button type="button" onclick="startChainFrom('${runId}')">${t('btn_start_chain')}</button>`;
+    } else if (!rep) {
+      $('repair_action').textContent = t('chain_needs_save');
+    } else {
+      $('repair_action').textContent = '';
+    }
+  } else { $('repair_block').hidden = true; }
+  // legacy chain block
+  if (r.chain) {
+    $('chain_block').hidden = false;
+    const c = r.chain;
+    const det = c.incumbent_detail ? Object.entries(c.incumbent_detail).map(([k, v]) => `${k}=${(+v).toFixed(4)}`).join(', ') : '';
+    $('chain_table').innerHTML = tableHTML([t('th_item'), t('th_value')], [
+      [t('r_start'), pick(c.origin)], [t('r_start_eta'), (+c.start_score).toFixed(4)],
+      [t('r_inc_eta', { rule: r.accept_rule === 'maximin_cd' ? t('rule_maximin') : t('rule_nominal') }), (+c.incumbent_score).toFixed(4) + (det ? ` <small>(${det})</small>` : '')],
+      [t('r_acc'), `${c.accepts} / ${c.n_jumps}`],
+      [t('r_alpha'), `${c.alphas.join('/')} · ${t('steps_at', { n: c.redescent_steps, b: c.beta })}`],
+      [t('r_wall'), `${c.start_wall_s} / ${c.chain_wall_s} / ${c.total_wall_s} s`]]);
+  } else { $('chain_block').hidden = true; }
+  // equal-budget block
+  const bc = r.budget_compare;
+  if (bc && isGM) {
+    $('budget_block').hidden = false;
+    const cw = bc.chain, rs = bc.restart;
+    const chainWins = cw.eta_rung1 != null && rs.eta_rung1 != null ? cw.eta_rung1 >= rs.eta_rung1 : cw.eta_gate >= rs.eta_gate;
+    $('budget_table').innerHTML = tableHTML(
+      [t('th_arm'), t('th_budget_s'), t('th_samples'), t('th_gate_eta'), t('th_rung1_eta'), t('th_cert_eta', { lv: bc.ladder_top }), t('th_note')], [
+      [t('arm_tickets'), cw.wall_s, t('chain_samples_gm', { n: cw.n_start, j: cw.n_jumps, a: cw.accepts }), fx(cw.eta_gate), fx(cw.eta_rung1), fx(cw.eta_top), t('delivered')],
+      [t('arm_control'), rs.wall_s, t('control_samples', { b: rs.n_base, n: rs.n }), fx(rs.eta_gate), fx(rs.eta_rung1), fx(rs.eta_top),
+        t('best_seed', { s: rs.best_seed }) + (rs.best_from_original ? t('best_from_original') : '')]],
+      [chainWins, !chainWins]);
+  } else if (bc) {
+    $('budget_block').hidden = false;
+    $('budget_table').innerHTML = tableHTML(
+      [t('th_arm'), t('th_budget_s'), t('th_samples'), t('th_gate_eta'), t('th_cert_eta', { lv: bc.ladder_top }), t('th_note')], [
+      [t('arm_chain'), bc.chain.wall_s, t('chain_samples', { s: bc.chain.n_start, j: bc.chain.n_jumps, a: bc.chain.accepts }),
+        bc.chain.eta_gate.toFixed(4), bc.chain.eta_top.toFixed(4), t('delivered')],
+      [t('arm_lottery'), bc.restart.wall_s, t('tickets', { n: bc.restart.n }),
+        `${t('best_w')} ${bc.restart.eta_gate.toFixed(4)} <small>${t('median_w')} ${bc.restart.median_gate.toFixed(4)} · ${t('worst_w')} ${bc.restart.min_gate.toFixed(4)}</small>`,
+        bc.restart.eta_top.toFixed(4), t('best_seed', { s: bc.restart.best_seed })]],
+      [bc.chain.eta_top >= bc.restart.eta_top, bc.chain.eta_top < bc.restart.eta_top]);
+  } else { $('budget_block').hidden = true; }
+  $('opt_compare_block').hidden = true;
+  // tickets / guards (guarded mixed-order) or the legacy restarts table
+  if (isGM) {
+    $('tickets_block').hidden = false; $('restarts_block').hidden = true;
+    const runs = r.runs || [];
+    const winKey = r.selection && r.selection.winner_key;
+    const gsum = g => g ? `${(g.n_trigger && Object.values(g.n_trigger).reduce((a, b) => a + b, 0)) ?? 0} / ${(g.n_true_positive && Object.values(g.n_true_positive).reduce((a, b) => a + b, 0)) ?? 0}` : '—';
+    $('tickets_table').innerHTML = runs.length ? tableHTML(
+      [t('th_role'), t('th_seed'), t('th_at_step'), t('th_beta_star'), t('th_best_gate'), t('th_rung1'), t('th_optimism'), t('th_final_rung1'), t('th_cliff'), t('th_high'), t('th_guard'), t('th_c128'), t('th_cost'), t('th_unit')],
+      runs.map(x => [roleLabel(x.role === 'control' ? 'rs' : 'ours'), x.seed, x.best_step ?? '—', x.beta_star != null ? (+x.beta_star).toFixed(0) : '—',
+        fx(x.eta_gate_best), fx(x.eta_rung1), sg(x.gate_optimism), fx(x.final_rung1), sg(x.cliff, 3), x.n_high ?? '—', gsum(x.guard),
+        x.guard ? (x.guard.n_c128 ?? 0) : '—', x.ticket_cost_s ?? '—', x.wall_s ?? '—']),
+      runs.map(x => x.key === winKey)) : `<p class="hint">${t('none')}</p>`;
+    // per-order guard statistics aggregated over the tickets (events carry the order)
+    const per = {};
+    (r.tickets || []).forEach(tk => {
+      const st = tk.guard_stats || {};
+      Object.entries(st.n_eval || {}).forEach(([lv, n]) => { per[lv] = per[lv] || { evals: 0, trig: 0, tp: 0, kept: 0, skip: 0 }; per[lv].evals += n; });
+      (tk.events || []).forEach(e => {
+        if (!e.level || !e.reason || e.reason === 'skipped_update' || e.reason === 'rise_complete') return;
+        const lv = e.level.join(','); per[lv] = per[lv] || { evals: 0, trig: 0, tp: 0, kept: 0, skip: 0 };
+        per[lv].trig += 1;
+        if (e.action === 'jitter' || e.action === 'c128') per[lv].tp += 1;
+        if (e.action === 'kept_original') per[lv].kept += 1;
+        if (e.action === 'skip_high') per[lv].skip += 1;
+      });
+    });
+    const gl = Object.keys(per);
+    $('guard_table').innerHTML = gl.length ? tableHTML([t('th_order'), t('th_evals'), t('th_trig'), t('th_tp'), t('th_per100'), t('th_kept'), t('th_skip')],
+      gl.sort((a, b) => nTerms(a.split(',').map(Number)) - nTerms(b.split(',').map(Number))).map(lv => {
+        const g = per[lv]; return [`(${lv})`, g.evals, g.trig, g.tp, g.evals ? (100 * g.tp / g.evals).toFixed(2) : '—', g.kept, g.skip];
+      })) : `<p class="hint">${t('none')}</p>`;
+    const gm = r.gm || {};
+    if (gm.cadence && gm.cadence.enabled) {
+      $('cadence_block').hidden = false;
+      $('cadence_table').innerHTML = tableHTML([t('th_seed'), t('th_k_final'), t('th_n_high'), t('th_rise_step'), t('th_level_final')],
+        (r.tickets || []).map(tk => [tk.seed, (tk.k_history || []).filter(h => h.k != null).slice(-1).map(h => h.k)[0] ?? '—',
+          `${tk.n_high_order_steps ?? '—'} / ${tk.high_budget ?? '—'}`,
+          (tk.k_history || []).filter(h => h.rise_to).map(h => `${h.t}→(${h.rise_to})`).join(', ') || '—', `(${(tk.level_d_final || []).join(',')})`]));
+    } else { $('cadence_block').hidden = true; }
+  } else {
+    $('tickets_block').hidden = true; $('restarts_block').hidden = false;
+    $('restart_table').innerHTML = (r.runs && r.runs.length) ? tableHTML(
+      [t('th_role'), t('th_engine'), t('th_seed'), t('th_final_relaxed'), t('th_best_gate'), t('th_at_step'), t('th_wall')],
+      r.runs.map(x => [x.role === 'start' ? t('role_chain_start') : t('role_restart'), engineLabel(x.engine || 'ours'), x.seed,
+        (x.eta_final_relaxed ?? 0).toFixed(4), (x.eta_gate_best ?? 0).toFixed(4), x.best_step ?? '—', x.wall_s]),
+      r.runs.map(x => r.best && r.best.origin === 'restart' && (x.engine || 'ours') === r.best.engine && x.seed === r.best.seed))
+      : `<p class="hint">${t('none_restarts')}</p>`;
+  }
+  $('certify_table').innerHTML = r.certification ? tableHTML(
+    [t('th_order'), '2N', 'η', t('th_total_T')],
+    r.certification.map(c => [`(${c.level})`, c.two_n ?? '—', c.eta.toFixed(5),
+      c.total_T != null ? c.total_T.toFixed(4) : '—']))
+    : `<p class="hint">${t('none')}</p>`;
+  $('robust_table').innerHTML = (r.robustness && r.robustness.length) ? tableHTML(
+    [t('th_cd'), t('th_eta_top')],
+    r.robustness.map(x => [x.bias_nm, x.eta.toFixed(4)])) : `<p class="hint">${t('not_run')}</p>`;
+  const e = r.engine || {};
+  $('engine_table').innerHTML = tableHTML([t('th_item'), t('th_value')], [
+    ['dtype / device', `${e.dtype || ''} / ${e.device || ''}`],
+    ['MEMORY_EFFICIENT', String(e.memory_efficient)],
+    ['save_on_cpu', String(e.save_on_cpu)],
+    [t('e_threads'), e.threads],
+    [t('e_total'), r.timing.total_s]]);
+}
+function tableHTML(headers, rows, hilites) {
+  const h = headers.map(x => `<th>${x}</th>`).join('');
+  const body = rows.map((row, i) =>
+    `<tr${hilites && hilites[i] ? ' class="hilite"' : ''}>` +
+    row.map(v => `<td>${v}</td>`).join('') + '</tr>').join('');
+  return `<table class="data"><tr>${h}</tr>${body}</table>`;
+}
+
+// ---------------------------------------------------------------- history
+async function refreshRuns() {
+  try {
+    const body = await api('/api/runs');
+    state.runsList = body.runs;
+    const keepSrc = $('src_run').value, keepChain = $('chain_run').value;
+    $('src_run').innerHTML = body.runs.map(x =>
+      `<option value="${x.run_id}">${x.run_id}</option>`).join('');
+    $('chain_run').innerHTML = $('src_run').innerHTML;
+    if (keepSrc) $('src_run').value = keepSrc;
+    if (keepChain) $('chain_run').value = keepChain;
+    $('history_table').innerHTML = tableHTML(
+      [t('th_run'), t('th_type'), t('th_target'), t('th_best_eta'), t('th_cert'), ''],
+      body.runs.map(x => {
+        const cert = (x.certification || []).map(c => `(${c.level}) ${c.eta.toFixed(4)}`).join('; ');
+        const eta = x.best ? (x.best.eta_top ?? x.best.eta_gate) : x.eta_target;
+        const chainLink = x.protocol === 'guarded_mixed' ? ` · <a class="runlink" onclick="startChainFrom('${x.run_id}')">${t('btn_chain')}</a>` : '';
+        return [x.run_id, t('type_' + x.type) + (x.protocol ? ` <small>${protoLabel(x.protocol)}</small>` : ''), x.target ? `(${x.target})` : '',
+          eta != null ? (+eta).toFixed(4) : '—', cert || '—',
+          `<a class="runlink" onclick="loadRun('${x.run_id}')">${t('btn_load')}</a>${chainLink}`];
+      }));
+  } catch (e) { /* ignore */ }
+}
+window.loadRun = async id => {
+  const saved = await api('/api/runs/' + id);
+  state.current = { params: saved.params, result: saved.result,
+    trajectories: saved.trajectories, checkpoints: saved.checkpoints,
+    chain_jumps: saved.chain_jumps, run_id: saved.run_id };
+  renderAll(state.current);
+  switchTab(saved.type === 'solve' ? 'fields' : 'summary');
+};
+
+// ---------------------------------------------------------------- tabs/env
+function switchTab(name) {
+  document.querySelectorAll('#tabs button').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tabpane').forEach(pane =>
+    pane.classList.toggle('active', pane.id === 'tab-' + name));
+  window.dispatchEvent(new Event('resize'));   // Plotly reflow on newly shown tab
+}
+document.querySelectorAll('#tabs button').forEach(b =>
+  b.addEventListener('click', () => switchTab(b.dataset.tab)));
+function showEnv(env) {
+  const gpu = env.cuda_available ? `${env.gpu}${env.gpu_mem_gb ? ' ' + env.gpu_mem_gb + ' GB' : ''}` : t('no_gpu');
+  const lum = env.lumerical && env.lumerical.importable;
+  $('envline').textContent =
+    `python ${env.python || ''} · torch ${env.torch} · ${gpu} · TORCWA ${env.torcwa ? t('avail') : t('unavail')} · Lumerical ${lum ? t('avail') : t('unavail')} · ${env.threads} ${t('threads')}`;
+  const notes = [];
+  if (!env.cuda_available) notes.push(t('env_no_cuda'));
+  if (!env.torcwa) notes.push(t('env_no_torcwa'));
+  if (!lum) notes.push(t('env_no_lum', { err: (env.lumerical && env.lumerical.error) || '' }));
+  $('env_hint').textContent = notes.join(' ');
+  $('env_hint').hidden = !notes.length;
+}
+function applyEnv(env) {
+  state.env = env;
+  if (!env.cuda_available) {
+    $('engine').value = 'cpu_c128';
+    $('engine').querySelector('option[value="gpu_c64"]').disabled = true;
+  }
+  if (!env.torcwa) {
+    $('compare_torcwa').checked = false; $('compare_torcwa').disabled = true;
+  }
+  if (!(env.lumerical && env.lumerical.importable)) {
+    $('compare_lumerical').checked = false; $('compare_lumerical').disabled = true;
+  }
+  const optAuto = $('save_on_cpu').querySelector('option[value="auto"]');
+  if (optAuto) optAuto.textContent = t('opt_off_auto', { n: env.offload_2n || 3000 });
+  showEnv(env);
+  updateHints();
+}
+async function loadEnv() {
+  try { applyEnv(await api('/api/env')); }
+  catch (e) { $('envline').textContent = t('backend_down'); }
+}
+applyLang(); loadEnv();
+$('btn_rule').click();          // the panel opens with the order rule's tiers for the default problem
+setInterval(refreshJobList, 5000);
+</script>
+</body>
+</html>
